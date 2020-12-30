@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"log"
 
 	"github.com/shirou/gopsutil/v3/process"
 )
@@ -16,7 +15,6 @@ type PsStat struct {
 func psStat(procName string) (stat *PsStat, err error) {
 	ps, err := process.Processes()
 	if err != nil {
-		log.Println("1", err)
 		return nil, err
 	}
 
@@ -29,19 +27,16 @@ func psStat(procName string) (stat *PsStat, err error) {
 		if name == procName {
 			cpuTime, err := p.Times()
 			if err != nil {
-				log.Println("3", err)
 				return nil, err
 			}
 
 			cpuThreadNum, err := p.NumThreads()
 			if err != nil {
-				log.Println("4", err)
 				return nil, err
 			}
 
 			mem, err := p.MemoryInfo()
 			if err != nil {
-				log.Println("5", err)
 				return nil, err
 			}
 
