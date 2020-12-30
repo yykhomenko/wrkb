@@ -16,8 +16,11 @@ func main() {
 	link := flag.Arg(0)
 
 	conns := []int{1, 2, 4, 8, 16, 32, 64, 128, 256}
+	var stats []Stat
 	for _, c := range conns {
-		fmt.Println(bench(c, link))
+		stat := *bench(c, link)
+		stats = append(stats, stat)
+		fmt.Println(stat)
 	}
 }
 
