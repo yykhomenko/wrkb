@@ -8,15 +8,34 @@ import (
 )
 
 func main() {
-	p := strings.Split("wrk -t1 -c1 -d1s --latency http://127.0.0.1", " ")
-	cmd := exec.Command(p[0], p[1:]...)
+	arg := strings.Split("wrk -t1 -c1 -d1s --latency http://127.0.0.1", " ")
+	cmd := exec.Command(arg[0], arg[1:]...)
 	b, err := cmd.Output()
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println(string(b))
 
-	lines := strings.Split(string(b), "\n")
+	p := split(string(b))
+	fmt.Println()
+	fmt.Println(p)
+	fmt.Println(p[11][1])
+	fmt.Println(p[3][1])
+}
 
-	fmt.Println(lines[11])
+func split(in string) (out [][]string) {
+	rows := strings.Split(in, "\n")
+	for _, row := range rows {
+		var cs []string
+		for _, col := range strings.Split(row, " ") {
+			c := strings.TrimSpace(col)
+			if c != "" {
+				cs = append(cs, c)
+			}
+		}
+		if len(cs) > 0 {
+			out = append(out, cs)
+		}
+	}
+	return
 }
