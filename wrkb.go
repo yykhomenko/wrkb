@@ -28,15 +28,18 @@ func main() {
 	fmt.Printf("Process %q starts with cpu:%f, threads:%d, mem:%d\n",
 		procName, ps.CpuTime, ps.CpuThreadNum, ps.MemRSS)
 
-	var stats []Result
+	results := Run(conns, link, procName)
+	result := findBestBench(results)
+	fmt.Println("\nBest:", result)
+}
+
+func Run(conns []int, link string, procName string) (out []Result) {
 	for _, c := range conns {
 		stat := bench(c, link, procName)
-		stats = append(stats, stat)
+		out = append(out, stat)
 		fmt.Println(stat)
 	}
-
-	stat := findBestBench(stats)
-	fmt.Println("\nBest:", stat)
+	return
 }
 
 func findBestBench(stats []Result) Result {
