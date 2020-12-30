@@ -1,15 +1,17 @@
 package wrkb
 
 import (
-	"fmt"
+	"errors"
 	"os"
 
 	"github.com/shirou/gopsutil/v3/process"
 )
 
+var ErrProcNotFound = errors.New("proc not found")
+
 type PsStat struct {
-	CpuTime       float64
-	CpuNumThreads int
+	CPUTime       float64
+	CPUNumThreads int
 	MemRSS        int
 	BinarySize    int
 }
@@ -53,13 +55,13 @@ func Ps(procName string) (stat *PsStat, err error) {
 			}
 
 			return &PsStat{
-				CpuTime:       cpuTime.Total(),
-				CpuNumThreads: int(cpuNumThreads),
+				CPUTime:       cpuTime.Total(),
+				CPUNumThreads: int(cpuNumThreads),
 				MemRSS:        int(memoryInfo.RSS),
 				BinarySize:    int(info.Size()),
 			}, nil
 		}
 	}
 
-	return nil, fmt.Errorf("proc %q not found", procName)
+	return nil, ErrProcNotFound
 }

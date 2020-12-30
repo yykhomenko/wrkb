@@ -13,14 +13,14 @@ type BenchStat struct {
 	ConnNum       int
 	RPS           int
 	Latency       time.Duration
-	CpuTime       float64
-	CpuNumThreads int
+	CPUTime       float64
+	CPUNumThreads int
 	MemRSS        int
 }
 
 func (s *BenchStat) String() string {
 	return fmt.Sprintf("%3d|%7d|%8s|%4.2f|%3d|%d",
-		s.ConnNum, s.RPS, s.Latency, s.CpuTime, s.CpuNumThreads, s.MemRSS)
+		s.ConnNum, s.RPS, s.Latency, s.CPUTime, s.CPUNumThreads, s.MemRSS)
 }
 
 func RunBench(conns []int, link string, procName string) (out []BenchStat) {
@@ -29,6 +29,7 @@ func RunBench(conns []int, link string, procName string) (out []BenchStat) {
 		out = append(out, stat)
 		fmt.Println(stat.String())
 	}
+
 	return
 }
 
@@ -55,8 +56,8 @@ func benchStat(c int, link, procName string) BenchStat {
 		ConnNum:       c,
 		RPS:           wrk.RPS,
 		Latency:       wrk.Latency,
-		CpuTime:       psf.CpuTime - pss.CpuTime,
-		CpuNumThreads: psf.CpuNumThreads,
+		CPUTime:       psf.CPUTime - pss.CPUTime,
+		CPUNumThreads: psf.CPUNumThreads,
 		MemRSS:        psf.MemRSS,
 	}
 }
@@ -68,11 +69,12 @@ func command(c int, link string) string {
 func parseRPS(s string) (int, error) {
 	switch {
 	case strings.HasSuffix(s, "k"):
+		const kilo = 1000
 		tps, err := strconv.ParseFloat(strings.TrimSuffix(s, "k"), 64)
 		if err != nil {
 			return 0, err
 		}
-		return int(tps * 1000), nil
+		return int(tps * kilo), nil
 	default:
 		tps, err := strconv.Atoi(s)
 		if err != nil {

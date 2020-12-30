@@ -22,7 +22,7 @@ func main() {
 	}
 
 	fmt.Printf("Process %q starts with:\ncpu %f\nthreads %d\nmem %d\ndisk %d\n\n",
-		*procName, ps.CpuTime, ps.CpuNumThreads, ps.MemRSS, ps.BinarySize)
+		*procName, ps.CPUTime, ps.CPUNumThreads, ps.MemRSS, ps.BinarySize)
 	fmt.Printf("%3s|%7s|%8s|%4s|%3s|%s\n", "num", "rps", "latency", "cpu", "thr", "rss")
 	fmt.Printf("----------------------------------------\n")
 	results := wrkb.RunBench(conns, link, *procName)
