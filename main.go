@@ -13,8 +13,8 @@ func main() {
 	flag.Parse()
 	link := flag.Arg(0)
 
-	conns := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
-	// conns := []int{1, 2, 4, 8, 16, 32, 64, 128, 256}
+	// conns := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
+	conns := []int{4, 8, 16}
 
 	ps, err := psStat(procName)
 	if err != nil {
@@ -26,7 +26,7 @@ func main() {
 
 	results := RunBench(conns, link, procName)
 	result := findBestBench(results)
-	fmt.Println("\nBest:\n", result.String())
+	fmt.Printf("\nBest:\n%s\n", result.String())
 }
 
 func findBestBench(stats []BenchStat) BenchStat {
