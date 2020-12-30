@@ -23,17 +23,16 @@ func (s *BenchStat) String() string {
 		s.ConnNum, s.RPS, s.Latency, s.CPUTime, s.CPUNumThreads, s.MemRSS)
 }
 
-func RunBench(conns []int, link string, procName string) (out []BenchStat) {
+func BenchAll(conns []int, link string, procName string) (out []BenchStat) {
 	for _, c := range conns {
-		stat := benchStat(c, link, procName)
+		stat := Bench(c, link, procName)
 		out = append(out, stat)
 		fmt.Println(stat.String())
 	}
-
 	return
 }
 
-func benchStat(c int, link, procName string) BenchStat {
+func Bench(c int, link, procName string) BenchStat {
 	pss, err := Ps(procName)
 	if err != nil {
 		log.Fatal(err)
@@ -46,7 +45,7 @@ func benchStat(c int, link, procName string) BenchStat {
 		log.Fatal(err)
 	}
 
-	wrk := wrkStat(b)
+	wrk := Wrk(b)
 	psf, err := Ps(procName)
 	if err != nil {
 		log.Fatal(err)

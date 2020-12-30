@@ -25,9 +25,9 @@ func main() {
 		*procName, ps.CPUTime, ps.CPUNumThreads, ps.MemRSS, ps.BinarySize)
 	fmt.Printf("%3s|%7s|%8s|%4s|%3s|%s\n", "num", "rps", "latency", "cpu", "thr", "rss")
 	fmt.Printf("----------------------------------------\n")
-	results := wrkb.RunBench(conns, link, *procName)
-	result := findBestBench(results)
-	fmt.Printf("\nBest:\n%s\n", result.String())
+	stats := wrkb.BenchAll(conns, link, *procName)
+	stat := findBestBench(stats)
+	fmt.Printf("\nBest:\n%s\n", stat.String())
 }
 
 func findBestBench(stats []wrkb.BenchStat) wrkb.BenchStat {
