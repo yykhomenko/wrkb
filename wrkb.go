@@ -4,29 +4,66 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
+	"strconv"
 	"strings"
+	"time"
 )
 
 func main() {
 	conns := []int{1, 2, 4, 8, 16, 32, 64, 128, 256}
 	for _, c := range conns {
-		load(c)
+		fmt.Println(load(c))
 	}
 }
 
-func load(c int) {
+type Stat struct {
+	c       int
+	rps     int
+	latency time.Duration
+}
+
+func load(c int) *Stat {
 	args := strings.Split(command(c), " ")
 	cmd := exec.Command(args[0], args[1:]...)
 	b, err := cmd.Output()
 	if err != nil {
 		log.Fatal(err)
 	}
-	// fmt.Println(string(b))
 
 	p := split(string(b))
-	// fmt.Println()
-	// fmt.Println(p)
-	fmt.Println(p[4][1], p[3][1])
+
+	rps, err := parseRPS(p[4][1])
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	latency, err := time.ParseDuration(p[3][1])
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return &Stat{
+		c:       c,
+		rps:     rps,
+		latency: latency,
+	}
+}
+
+func parseRPS(s string) (int, error) {
+	switch {
+	case strings.HasSuffix(s, "k"):
+		tps, err := strconv.ParseFloat(strings.TrimSuffix(s, "k"), 64)
+		if err != nil {
+			return 0, err
+		}
+		return int(tps * 1000), nil
+	default:
+		tps, err := strconv.Atoi(s)
+		if err != nil {
+			return 0, err
+		}
+		return tps, nil
+	}
 }
 
 func command(c int) string {
