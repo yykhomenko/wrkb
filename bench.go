@@ -10,12 +10,12 @@ import (
 )
 
 type BenchStat struct {
-	ConnNum      int
-	RPS          int
-	Latency      time.Duration
-	CpuTime      float64
-	CpuThreadNum int
-	MemRSS       int
+	ConnNum       int
+	RPS           int
+	Latency       time.Duration
+	CpuTime       float64
+	CpuNumThreads int
+	MemRSS        int
 }
 
 func RunBench(conns []int, link string, procName string) (out []BenchStat) {
@@ -47,12 +47,12 @@ func benchStat(c int, link, procName string) BenchStat {
 	}
 
 	return BenchStat{
-		ConnNum:      c,
-		RPS:          wrk.RPS,
-		Latency:      wrk.Latency,
-		CpuTime:      psf.CpuTime - pss.CpuTime,
-		CpuThreadNum: psf.CpuThreadNum,
-		MemRSS:       psf.MemRSS,
+		ConnNum:       c,
+		RPS:           wrk.RPS,
+		Latency:       wrk.Latency,
+		CpuTime:       psf.CpuTime - pss.CpuTime,
+		CpuNumThreads: psf.CpuNumThreads,
+		MemRSS:        psf.MemRSS,
 	}
 }
 

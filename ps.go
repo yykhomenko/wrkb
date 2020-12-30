@@ -7,9 +7,9 @@ import (
 )
 
 type PsStat struct {
-	CpuTime      float64
-	CpuThreadNum int
-	MemRSS       int
+	CpuTime       float64
+	CpuNumThreads int
+	MemRSS        int
 }
 
 func psStat(procName string) (stat *PsStat, err error) {
@@ -30,7 +30,7 @@ func psStat(procName string) (stat *PsStat, err error) {
 				return nil, err
 			}
 
-			cpuThreadNum, err := p.NumThreads()
+			cpuNumThreads, err := p.NumThreads()
 			if err != nil {
 				return nil, err
 			}
@@ -41,9 +41,9 @@ func psStat(procName string) (stat *PsStat, err error) {
 			}
 
 			return &PsStat{
-				CpuTime:      cpuTime.Total(),
-				CpuThreadNum: int(cpuThreadNum),
-				MemRSS:       int(mem.RSS),
+				CpuTime:       cpuTime.Total(),
+				CpuNumThreads: int(cpuNumThreads),
+				MemRSS:        int(mem.RSS),
 			}, nil
 		}
 	}

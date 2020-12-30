@@ -22,7 +22,7 @@ func main() {
 	}
 
 	fmt.Printf("Process %q starts with cpu:%f, threads:%d, mem:%d\n",
-		procName, ps.CpuTime, ps.CpuThreadNum, ps.MemRSS)
+		procName, ps.CpuTime, ps.CpuNumThreads, ps.MemRSS)
 
 	results := RunBench(conns, link, procName)
 	result := findBestBench(results)
