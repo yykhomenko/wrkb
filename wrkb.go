@@ -1,26 +1,31 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"log"
+	"math"
 	"os/exec"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/shirou/gopsutil/v3/process"
 )
 
 func main() {
-	// appCmd := flag.String("run", "", "path to app for lunch")
+	procName := *flag.String("name", "main", "process name")
 	flag.Parse()
 	link := flag.Arg(0)
 
-	conns := []int{2, 3, 4, 5, 6, 7, 8, 16, 32, 64}
+	conns := []int{6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
+	// conns := []int{1, 2, 4, 8, 16, 32, 64, 128, 256}
 
 	var stats []Stat
 	for _, c := range conns {
-		stat := bench(c, link)
+		stat := bench(c, link, procName)
 		stats = append(stats, stat)
 		fmt.Println(stat)
 	}
@@ -40,13 +45,20 @@ type Stat struct {
 	c       int
 	rps     int
 	latency time.Duration
+	cpuTime float64
 }
 
 func (s *Stat) Rate() float64 {
-	return float64(s.rps) / float64(s.latency.Nanoseconds())
+	return float64(s.rps) / math.Log10(float64(s.latency.Nanoseconds()))
 }
 
-func bench(c int, link string) Stat {
+func bench(c int, link, procName string) Stat {
+
+	cpuStart, err := cpuTime(procName)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	args := strings.Split(command(c, link), " ")
 	cmd := exec.Command(args[0], args[1:]...)
 	b, err := cmd.Output()
@@ -66,10 +78,16 @@ func bench(c int, link string) Stat {
 		log.Fatal(err)
 	}
 
+	cpuFinish, err := cpuTime(procName)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	return Stat{
 		c:       c,
 		rps:     rps,
 		latency: latency,
+		cpuTime: cpuFinish - cpuStart,
 	}
 }
 
@@ -88,6 +106,30 @@ func parseRPS(s string) (int, error) {
 		}
 		return tps, nil
 	}
+}
+
+func cpuTime(procName string) (float64, error) {
+	ps, err := process.Processes()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, p := range ps {
+		name, err := p.Name()
+		if err != nil {
+			return 0, err
+		}
+
+		if name == procName {
+			t, err := p.Times()
+			if err != nil {
+				return 0, err
+			}
+			return t.Total(), nil
+		}
+	}
+
+	return 0, errors.New("proc not found")
 }
 
 func command(c int, link string) string {
