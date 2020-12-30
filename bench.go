@@ -18,11 +18,16 @@ type BenchStat struct {
 	MemRSS        int
 }
 
+func (s *BenchStat) String() string {
+	return fmt.Sprintf("%3d|%7d|%8s|%4.2f|%3d|%d",
+		s.ConnNum, s.RPS, s.Latency, s.CpuTime, s.CpuNumThreads, s.MemRSS)
+}
+
 func RunBench(conns []int, link string, procName string) (out []BenchStat) {
 	for _, c := range conns {
 		stat := benchStat(c, link, procName)
 		out = append(out, stat)
-		fmt.Println(stat)
+		fmt.Println(stat.String())
 	}
 	return
 }

@@ -21,12 +21,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("Process %q starts with cpu:%f, threads:%d, mem:%d\n",
-		procName, ps.CpuTime, ps.CpuNumThreads, ps.MemRSS)
+	fmt.Printf("Process %q starts with cpu:%f, threads:%d, mem:%d, disk:%d\n",
+		procName, ps.CpuTime, ps.CpuNumThreads, ps.MemRSS, ps.BinarySize)
 
 	results := RunBench(conns, link, procName)
 	result := findBestBench(results)
-	fmt.Println("\nBest:", result)
+	fmt.Println("\nBest:\n", result.String())
 }
 
 func findBestBench(stats []BenchStat) BenchStat {
