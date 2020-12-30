@@ -6,6 +6,8 @@ import (
 	"log"
 	"math"
 	"sort"
+
+	"wrkb/internal/wrkb"
 )
 
 func main() {
@@ -14,7 +16,7 @@ func main() {
 	link := flag.Arg(0)
 	conns := []int{1, 2, 4, 8, 16, 32}
 
-	ps, err := psStat(*procName)
+	ps, err := wrkb.Ps(*procName)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -23,12 +25,12 @@ func main() {
 		*procName, ps.CpuTime, ps.CpuNumThreads, ps.MemRSS, ps.BinarySize)
 	fmt.Printf("%3s|%7s|%8s|%4s|%3s|%s\n", "num", "rps", "latency", "cpu", "thr", "rss")
 	fmt.Printf("----------------------------------------\n")
-	results := RunBench(conns, link, *procName)
+	results := wrkb.RunBench(conns, link, *procName)
 	result := findBestBench(results)
 	fmt.Printf("\nBest:\n%s\n", result.String())
 }
 
-func findBestBench(stats []BenchStat) BenchStat {
+func findBestBench(stats []wrkb.BenchStat) wrkb.BenchStat {
 	sort.Slice(stats, func(i, j int) bool {
 		w1 := float64(stats[i].RPS) / math.Log10(float64(stats[i].Latency.Nanoseconds()))
 		w2 := float64(stats[j].RPS) / math.Log10(float64(stats[j].Latency.Nanoseconds()))

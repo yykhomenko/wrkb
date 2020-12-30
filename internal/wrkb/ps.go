@@ -1,4 +1,4 @@
-package main
+package wrkb
 
 import (
 	"fmt"
@@ -14,7 +14,7 @@ type PsStat struct {
 	BinarySize    int
 }
 
-func psStat(procName string) (stat *PsStat, err error) {
+func Ps(procName string) (stat *PsStat, err error) {
 	ps, err := process.Processes()
 	if err != nil {
 		return nil, err

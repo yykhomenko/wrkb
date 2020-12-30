@@ -1,4 +1,4 @@
-package main
+package wrkb
 
 import (
 	"fmt"
@@ -33,7 +33,7 @@ func RunBench(conns []int, link string, procName string) (out []BenchStat) {
 }
 
 func benchStat(c int, link, procName string) BenchStat {
-	pss, err := psStat(procName)
+	pss, err := Ps(procName)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func benchStat(c int, link, procName string) BenchStat {
 	}
 
 	wrk := wrkStat(b)
-	psf, err := psStat(procName)
+	psf, err := Ps(procName)
 	if err != nil {
 		log.Fatal(err)
 	}
