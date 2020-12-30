@@ -15,4 +15,8 @@ func main() {
 		log.Fatal(err)
 	}
 	fmt.Println(string(b))
+
+	lines := strings.Split(string(b), "\n")
+
+	fmt.Println(lines[11])
 }
