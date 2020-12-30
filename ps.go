@@ -35,7 +35,7 @@ func psStat(procName string) (stat *PsStat, err error) {
 				return nil, err
 			}
 
-			mem, err := p.MemoryInfo()
+			memoryInfo, err := p.MemoryInfo()
 			if err != nil {
 				return nil, err
 			}
@@ -43,7 +43,7 @@ func psStat(procName string) (stat *PsStat, err error) {
 			return &PsStat{
 				CpuTime:       cpuTime.Total(),
 				CpuNumThreads: int(cpuNumThreads),
-				MemRSS:        int(mem.RSS),
+				MemRSS:        int(memoryInfo.RSS),
 			}, nil
 		}
 	}
