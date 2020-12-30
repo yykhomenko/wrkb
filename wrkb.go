@@ -17,6 +17,7 @@ func main() {
 	link := flag.Arg(0)
 
 	conns := []int{2, 3, 4, 5, 6, 7, 8, 16, 32, 64}
+
 	var stats []Stat
 	for _, c := range conns {
 		stat := bench(c, link)
