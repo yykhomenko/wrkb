@@ -8,8 +8,10 @@ import (
 )
 
 func main() {
-	load(1)
-	load(10)
+	conns := []int{1, 2, 4, 8, 16, 32, 64, 128, 256}
+	for _, c := range conns {
+		load(c)
+	}
 }
 
 func load(c int) {
@@ -24,7 +26,7 @@ func load(c int) {
 	p := split(string(b))
 	// fmt.Println()
 	// fmt.Println(p)
-	fmt.Println(p[11][1], p[3][1])
+	fmt.Println(p[4][1], p[3][1])
 }
 
 func command(c int) string {
