@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os/exec"
@@ -10,9 +11,13 @@ import (
 )
 
 func main() {
+	// appCmd := flag.String("run", "", "path to app for lunch")
+	flag.Parse()
+	link := flag.Arg(0)
+
 	conns := []int{1, 2, 4, 8, 16, 32, 64, 128, 256}
 	for _, c := range conns {
-		fmt.Println(bench(c))
+		fmt.Println(bench(c, link))
 	}
 }
 
@@ -22,8 +27,8 @@ type Stat struct {
 	latency time.Duration
 }
 
-func bench(c int) *Stat {
-	args := strings.Split(command(c), " ")
+func bench(c int, link string) *Stat {
+	args := strings.Split(command(c, link), " ")
 	cmd := exec.Command(args[0], args[1:]...)
 	b, err := cmd.Output()
 	if err != nil {
@@ -66,8 +71,8 @@ func parseRPS(s string) (int, error) {
 	}
 }
 
-func command(c int) string {
-	return fmt.Sprintf("wrk -t1 -c%d -d1s --latency http://127.0.0.1", c)
+func command(c int, link string) string {
+	return fmt.Sprintf("wrk -t1 -c%d -d1s --latency %s", c, link)
 }
 
 func split(in string) (out [][]string) {
