@@ -12,7 +12,7 @@ import (
 func main() {
 	conns := []int{1, 2, 4, 8, 16, 32, 64, 128, 256}
 	for _, c := range conns {
-		fmt.Println(load(c))
+		fmt.Println(bench(c))
 	}
 }
 
@@ -22,7 +22,7 @@ type Stat struct {
 	latency time.Duration
 }
 
-func load(c int) *Stat {
+func bench(c int) *Stat {
 	args := strings.Split(command(c), " ")
 	cmd := exec.Command(args[0], args[1:]...)
 	b, err := cmd.Output()
