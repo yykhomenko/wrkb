@@ -13,7 +13,7 @@ type PsStat struct {
 	MemRSS       int
 }
 
-func stats(procName string) (stat *PsStat, err error) {
+func psStat(procName string) (stat *PsStat, err error) {
 	ps, err := process.Processes()
 	if err != nil {
 		log.Println("1", err)
