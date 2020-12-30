@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -15,13 +16,23 @@ func main() {
 	flag.Parse()
 	link := flag.Arg(0)
 
-	conns := []int{1, 2, 4, 8, 16, 32, 64, 128, 256}
+	conns := []int{2, 3, 4, 5, 6, 7, 8, 16, 32, 64}
 	var stats []Stat
 	for _, c := range conns {
-		stat := *bench(c, link)
+		stat := bench(c, link)
 		stats = append(stats, stat)
 		fmt.Println(stat)
 	}
+
+	stat := findBestBench(stats)
+	fmt.Println("\nBest:", stat)
+}
+
+func findBestBench(stats []Stat) Stat {
+	sort.Slice(stats, func(i, j int) bool {
+		return stats[i].Rate() > stats[j].Rate()
+	})
+	return stats[0]
 }
 
 type Stat struct {
@@ -30,7 +41,11 @@ type Stat struct {
 	latency time.Duration
 }
 
-func bench(c int, link string) *Stat {
+func (s *Stat) Rate() float64 {
+	return float64(s.rps) / float64(s.latency.Nanoseconds())
+}
+
+func bench(c int, link string) Stat {
 	args := strings.Split(command(c, link), " ")
 	cmd := exec.Command(args[0], args[1:]...)
 	b, err := cmd.Output()
@@ -50,7 +65,7 @@ func bench(c int, link string) *Stat {
 		log.Fatal(err)
 	}
 
-	return &Stat{
+	return Stat{
 		c:       c,
 		rps:     rps,
 		latency: latency,
