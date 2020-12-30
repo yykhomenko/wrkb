@@ -1,7 +1,7 @@
 package main
 
 import (
-	"errors"
+	"fmt"
 	"os"
 
 	"github.com/shirou/gopsutil/v3/process"
@@ -61,5 +61,5 @@ func psStat(procName string) (stat *PsStat, err error) {
 		}
 	}
 
-	return nil, errors.New("proc not found")
+	return nil, fmt.Errorf("proc %q not found", procName)
 }
