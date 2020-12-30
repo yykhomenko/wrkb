@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -11,8 +10,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/shirou/gopsutil/v3/process"
 )
 
 func main() {
@@ -20,10 +17,18 @@ func main() {
 	flag.Parse()
 	link := flag.Arg(0)
 
-	conns := []int{6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
+	conns := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
 	// conns := []int{1, 2, 4, 8, 16, 32, 64, 128, 256}
 
-	var stats []Stat
+	ps, err := stats(procName)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("Process %q starts with cpu:%f, threads:%d, mem:%d\n",
+		procName, ps.CpuTime, ps.CpuThreadNum, ps.MemRSS)
+
+	var stats []Result
 	for _, c := range conns {
 		stat := bench(c, link, procName)
 		stats = append(stats, stat)
@@ -34,27 +39,28 @@ func main() {
 	fmt.Println("\nBest:", stat)
 }
 
-func findBestBench(stats []Stat) Stat {
+func findBestBench(stats []Result) Result {
 	sort.Slice(stats, func(i, j int) bool {
 		return stats[i].Rate() > stats[j].Rate()
 	})
 	return stats[0]
 }
 
-type Stat struct {
-	c       int
-	rps     int
-	latency time.Duration
-	cpuTime float64
+type Result struct {
+	ConnNum      int
+	RPS          int
+	Latency      time.Duration
+	CpuTime      float64
+	CpuThreadNum int
+	MemRSS       int
 }
 
-func (s *Stat) Rate() float64 {
-	return float64(s.rps) / math.Log10(float64(s.latency.Nanoseconds()))
+func (s *Result) Rate() float64 {
+	return float64(s.RPS) / math.Log10(float64(s.Latency.Nanoseconds()))
 }
 
-func bench(c int, link, procName string) Stat {
-
-	cpuStart, err := cpuTime(procName)
+func bench(c int, link, procName string) Result {
+	pss, err := stats(procName)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -78,16 +84,18 @@ func bench(c int, link, procName string) Stat {
 		log.Fatal(err)
 	}
 
-	cpuFinish, err := cpuTime(procName)
+	psf, err := stats(procName)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return Stat{
-		c:       c,
-		rps:     rps,
-		latency: latency,
-		cpuTime: cpuFinish - cpuStart,
+	return Result{
+		ConnNum:      c,
+		RPS:          rps,
+		Latency:      latency,
+		CpuTime:      psf.CpuTime - pss.CpuTime,
+		CpuThreadNum: psf.CpuThreadNum,
+		MemRSS:       psf.MemRSS,
 	}
 }
 
@@ -106,30 +114,6 @@ func parseRPS(s string) (int, error) {
 		}
 		return tps, nil
 	}
-}
-
-func cpuTime(procName string) (float64, error) {
-	ps, err := process.Processes()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for _, p := range ps {
-		name, err := p.Name()
-		if err != nil {
-			return 0, err
-		}
-
-		if name == procName {
-			t, err := p.Times()
-			if err != nil {
-				return 0, err
-			}
-			return t.Total(), nil
-		}
-	}
-
-	return 0, errors.New("proc not found")
 }
 
 func command(c int, link string) string {
