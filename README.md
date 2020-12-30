@@ -1,8 +1,7 @@
 # wrkb
 WRK benchmark
 
-Set max thread and connection count, or range
-
-Start wrk several times and record data
-
-Print result table with best match
+```
+go run main.go http://127.0.0.1
+go run main.go -name=myAppName myLink
+```
