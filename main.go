@@ -12,18 +12,17 @@ func main() {
 	procName := flag.String("name", "main", "process name")
 	flag.Parse()
 	link := flag.Arg(0)
-
-	// conns := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
-	conns := []int{4, 8, 16}
+	conns := []int{1, 2, 4, 8, 16, 32}
 
 	ps, err := psStat(*procName)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("Process %q starts with cpu:%f, threads:%d, mem:%d, disk:%d\n",
+	fmt.Printf("Process %q starts with:\ncpu %f\nthreads %d\nmem %d\ndisk %d\n\n",
 		*procName, ps.CpuTime, ps.CpuNumThreads, ps.MemRSS, ps.BinarySize)
-
+	fmt.Printf("%3s|%7s|%8s|%4s|%3s|%s\n", "num", "rps", "latency", "cpu", "thr", "rss")
+	fmt.Printf("----------------------------------------\n")
 	results := RunBench(conns, link, *procName)
 	result := findBestBench(results)
 	fmt.Printf("\nBest:\n%s\n", result.String())
