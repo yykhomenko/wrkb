@@ -42,7 +42,7 @@ func Bench(c int, link, procName string) BenchStat {
 	cmd := exec.Command(args[0], args[1:]...)
 	b, err := cmd.Output()
 	if err != nil {
-		log.Println("process wrk not responce, probably wrong link parameter")
+		log.Println("process wrk not response, probably wrong link parameter")
 		log.Fatal(err)
 	}
 
