@@ -19,7 +19,7 @@ type BenchStat struct {
 }
 
 func (s *BenchStat) String() string {
-	return fmt.Sprintf("%3d|%7d|%8s|%4.2f|%3d|%d",
+	return fmt.Sprintf("%3d|%7d|%9s|%5.2f|%4d|%12d",
 		s.ConnNum, s.RPS, s.Latency, s.CPUTime, s.CPUNumThreads, s.MemRSS)
 }
 
@@ -42,6 +42,7 @@ func Bench(c int, link, procName string) BenchStat {
 	cmd := exec.Command(args[0], args[1:]...)
 	b, err := cmd.Output()
 	if err != nil {
+		log.Println("process wrk not responce, probably wrong link parameter")
 		log.Fatal(err)
 	}
 
