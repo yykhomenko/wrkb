@@ -7,7 +7,7 @@ import (
 	"math"
 	"sort"
 
-	"wrkb/internal/wrkb"
+	wrkb "wrkb/internal"
 )
 
 func main() {
