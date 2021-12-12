@@ -10,7 +10,7 @@ test:	## Run all the tests
 	go test -v -race -timeout 30s ./...
 
 run: ## Run wrkb
-	./wrkb http://127.0.0.1
+	./wrkb http://127.0.0.1:8080
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
