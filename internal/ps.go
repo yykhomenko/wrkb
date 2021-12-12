@@ -24,43 +24,41 @@ func Ps(procName string) (stat *PsStat, err error) {
 
 	for _, p := range ps {
 		name, err := p.Name()
-		if err != nil {
+		if err != nil || name != procName {
 			continue
 		}
 
-		if name == procName {
-			cpuTime, err := p.Times()
-			if err != nil {
-				return nil, err
-			}
-
-			cpuNumThreads, err := p.NumThreads()
-			if err != nil {
-				return nil, err
-			}
-
-			memoryInfo, err := p.MemoryInfo()
-			if err != nil {
-				return nil, err
-			}
-
-			path, err := p.Exe()
-			if err != nil {
-				return nil, err
-			}
-
-			info, err := os.Stat(path)
-			if err != nil {
-				return nil, err
-			}
-
-			return &PsStat{
-				CPUTime:       cpuTime.Total(),
-				CPUNumThreads: int(cpuNumThreads),
-				MemRSS:        int(memoryInfo.RSS),
-				BinarySize:    int(info.Size()),
-			}, nil
+		cpuTime, err := p.Times()
+		if err != nil {
+			return nil, err
 		}
+
+		cpuNumThreads, err := p.NumThreads()
+		if err != nil {
+			return nil, err
+		}
+
+		memoryInfo, err := p.MemoryInfo()
+		if err != nil {
+			return nil, err
+		}
+
+		path, err := p.Exe()
+		if err != nil {
+			return nil, err
+		}
+
+		info, err := os.Stat(path)
+		if err != nil {
+			return nil, err
+		}
+
+		return &PsStat{
+			CPUTime:       cpuTime.Total(),
+			CPUNumThreads: int(cpuNumThreads),
+			MemRSS:        int(memoryInfo.RSS),
+			BinarySize:    int(info.Size()),
+		}, nil
 	}
 
 	return nil, ErrProcNotFound
