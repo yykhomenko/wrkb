@@ -11,21 +11,21 @@ import (
 )
 
 func main() {
-	procName := flag.String("name", "main", "process name")
+	procName := *flag.String("name", "main", "process name")
 	flag.Parse()
 	link := flag.Arg(0)
 	conns := []int{1, 2, 4, 8, 16, 32, 64}
 
-	ps, err := wrkb.Ps(*procName)
+	ps, err := wrkb.Ps(procName)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	fmt.Printf("Process %q starts with:\ncpu(s)  %f\nthreads %d\nmem(b)  %d\ndisk(b) %d\n\n",
-		*procName, ps.CPUTime, ps.CPUNumThreads, ps.MemRSS, ps.BinarySize)
+		procName, ps.CPUTime, ps.CPUNumThreads, ps.MemRSS, ps.BinarySize)
 	fmt.Printf("%3s|%7s|%9s|%5s|%4s|%12s\n", "num", "rps", "latency", "cpu", "thr", "rss")
 	fmt.Printf("---------------------------------------------\n")
-	stats := wrkb.BenchAll(conns, link, *procName)
+	stats := wrkb.BenchAll(conns, link, procName)
 	stat := findBestBench(stats)
 	fmt.Printf("\nBest:\n%s\n", stat.String())
 }
