@@ -1,15 +1,14 @@
 # wrkb
+
 WRK benchmark run WRK multiple times and pick stats.
 After benchmarks done it prints bench results.
 
 ```
-go run cmd/wrkb/main.go http://127.0.0.1:8080
+go run cmd/wrkb/main.go main http://127.0.0.1:8080
 ```
-or
-```
-go run cmd/wrkb/main.go -name=main http://127.0.0.1:8080
-```
-where -name is target local process name 
+
+where 'main' is target local process name
+
 ```
 Process "main" starts with:
 cpu 0.000000

@@ -1,16 +1,11 @@
-build: ## Build a version
-	go build -v ./cmd/...
+build: ## Build version
+	go build ./cmd/...
 
-lint: ## Run linters
-	golangci-lint run --no-config --issues-exit-code=0 --deadline=30s \
-	--enable-all --disable=wsl --disable=nlreturn --disable=wrapcheck \
-	--disable=forbidigo --disable=gofumpt
+test:	## Run all tests
+	go test -race ./...
 
-test:	## Run all the tests
-	go test -v -race -timeout 30s ./...
-
-run: ## Run wrkb
-	./wrkb main http://127.0.0.1:8080
+run: ## Run version
+	./wrkb main http://127.0.0.1
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
