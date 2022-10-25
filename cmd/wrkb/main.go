@@ -2,8 +2,7 @@ package main
 
 import (
 	"os"
-
-	wrkb "wrkb/internal"
+	"wrkb/pkg/wrkb"
 )
 
 func main() {

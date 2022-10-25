@@ -1,11 +1,15 @@
 build: ## Build version
-	go build ./cmd/...
+	go get ./... && \
+  go build ./cmd/...
 
 test:	## Run all tests
-	go test -race ./...
+	go test -race -timeout 10s ./...
 
 run: ## Run version
 	./wrkb main http://127.0.0.1
+
+clean:
+	rm -f wrkb
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
