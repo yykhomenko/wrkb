@@ -7,7 +7,7 @@ import (
 	"sort"
 )
 
-func Start(conns []int, link string, procName string) {
+func Start(conns []int, procName, url string) {
 	ps, err := Ps(procName)
 	if err != nil {
 		log.Fatal(err)
@@ -15,10 +15,14 @@ func Start(conns []int, link string, procName string) {
 
 	fmt.Printf("Process %q starts with:\ncpu(s)  %f\nthreads %d\nmem(b)  %d\ndisk(b) %d\n\n",
 		procName, ps.CPUTime, ps.CPUNumThreads, ps.MemRSS, ps.BinarySize)
-	fmt.Printf("%3s|%7s|%9s|%5s|%4s|%12s\n", "num", "rps", "latency", "cpu", "thr", "rss")
-	fmt.Printf("---------------------------------------------\n")
-	stats := BenchAll(conns, link, procName)
+
+	fmt.Printf("┌────┬───────┬─────────┬─────┬────┬────────────┐\n")
+	fmt.Printf("│%4s│%7s│%9s│%5s│%4s│%12s│\n", "conn", "rps", "latency", "cpu", "thr", "rss")
+	fmt.Printf("├────┼───────┼─────────┼─────┼────┼────────────┤\n")
+
+	stats := BenchAll(conns, procName, url)
 	stat := findBestBench(stats)
+	fmt.Printf("└────┴───────┴─────────┴─────┴────┴────────────┘\n")
 	fmt.Printf("\nBest:\n%s\n", stat.String())
 }
 
