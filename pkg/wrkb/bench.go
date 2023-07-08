@@ -10,55 +10,25 @@ import (
 )
 
 type BenchStat struct {
-	ConnNum       int
-	RPS           int
-	Latency       time.Duration
-	CPUTime       float64
-	CPUNumThreads int
-	MemRSS        int
+	ConnNum int
+	RPS     int
+	Latency time.Duration
 }
 
-func (s *BenchStat) String() string {
-	return fmt.Sprintf("│%4d│%7d│%9s│%5.2f│%4d│%12d│",
-		s.ConnNum, s.RPS, s.Latency, s.CPUTime, s.CPUNumThreads, s.MemRSS)
-}
-
-func BenchAll(conns []int, procName, url string) (out []BenchStat) {
-	for _, c := range conns {
-		stat := Bench(c, procName, url)
-		out = append(out, stat)
-		fmt.Println(stat.String())
-	}
-	return
-}
-
-func Bench(c int, procName, url string) BenchStat {
-	pss, err := Ps(procName)
-	if err != nil {
-		log.Fatal(err)
-	}
-
+func Bench(c int, url string) BenchStat {
 	args := strings.Split(command(c, url), " ")
 	cmd := exec.Command(args[0], args[1:]...)
 	b, err := cmd.Output()
 	if err != nil {
-		log.Println("process wrk not response, probably wrong 'URL' parameter")
+		log.Println("process wrk not response, wrong 'URL' parameter")
 		log.Fatal(string(b))
 	}
 
 	wrk := Wrk(b)
-	psf, err := Ps(procName)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	return BenchStat{
-		ConnNum:       c,
-		RPS:           wrk.RPS,
-		Latency:       wrk.Latency,
-		CPUTime:       psf.CPUTime - pss.CPUTime,
-		CPUNumThreads: psf.CPUNumThreads,
-		MemRSS:        psf.MemRSS,
+		ConnNum: c,
+		RPS:     wrk.RPS,
+		Latency: wrk.Latency,
 	}
 }
 
