@@ -20,7 +20,7 @@ func Bench(c int, url string) BenchStat {
 	cmd := exec.Command(args[0], args[1:]...)
 	b, err := cmd.Output()
 	if err != nil {
-		log.Println("process wrk not response, wrong 'URL' parameter")
+		log.Println("process wrk not response")
 		log.Fatal(string(b))
 	}
 
