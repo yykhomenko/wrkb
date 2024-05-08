@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	conns := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 16, 32, 64}
+	conns := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 16, 32, 64, 128}
 
 	var procName string
 	var url string
