@@ -37,17 +37,19 @@ func Start(conns []int, procName, url string) {
 
 		stat := Bench(connNum, url)
 		stats = append(stats, stat)
-		fmt.Printf("│%4d│%7d│%9s│", stat.ConnNum, stat.RPS, stat.Latency)
 
 		if procName != "" {
 			psf, err := Ps(procName)
 			if err != nil {
 				log.Fatal(err)
 			}
-
-			fmt.Printf("%5.2f│%4d│%7.7s│\n", psf.CPUTime-pss.CPUTime, psf.CPUNumThreads, humanize.Bytes(uint64(psf.MemRSS)))
+			fmt.Printf("│%4d│%7d│%9s│%5.2f│%4d│%7.7s│\n",
+				stat.ConnNum, stat.RPS, stat.Latency, psf.CPUTime-pss.CPUTime, psf.CPUNumThreads, humanize.Bytes(uint64(psf.MemRSS)),
+			)
 		} else {
-			fmt.Printf("%5.2s│%4s│%7.7s│\n", "", "", "")
+			fmt.Printf("│%4d│%7d│%9s│%5.2s│%4s│%7.7s│\n",
+				stat.ConnNum, stat.RPS, stat.Latency, "", "", "",
+			)
 		}
 	}
 	fmt.Printf("└────┴───────┴─────────┴─────┴────┴───────┘\n")
