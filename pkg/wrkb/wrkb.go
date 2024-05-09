@@ -24,7 +24,7 @@ func Start(conns []int, procName, url string) {
 	fmt.Printf("├────┼───────┼─────────┼─────┼────┼───────┤\n")
 
 	var stats []BenchStat
-	for _, c := range conns {
+	for _, connNum := range conns {
 
 		var pss *PsStat
 		if procName != "" {
@@ -35,7 +35,7 @@ func Start(conns []int, procName, url string) {
 			pss = ps
 		}
 
-		stat := Bench(c, url)
+		stat := Bench(connNum, url)
 		stats = append(stats, stat)
 		fmt.Printf("│%4d│%7d│%9s│", stat.ConnNum, stat.RPS, stat.Latency)
 

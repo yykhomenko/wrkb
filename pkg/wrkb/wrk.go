@@ -11,8 +11,8 @@ type WrkStat struct {
 	Latency time.Duration
 }
 
-func Wrk(b []byte) WrkStat {
-	p := split(string(b))
+func Wrk(out []byte) WrkStat {
+	p := split(string(out))
 	rps, err := parseRPS(p[4][1])
 	if err != nil {
 		log.Fatal(err)
