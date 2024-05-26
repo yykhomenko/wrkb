@@ -6,7 +6,14 @@ import (
 	"log"
 	"math"
 	"sort"
+	"time"
 )
+
+type BenchStat struct {
+	ConnNum int
+	RPS     int
+	Latency time.Duration
+}
 
 func Start(conns []int, procName, url string) {
 
@@ -35,7 +42,7 @@ func Start(conns []int, procName, url string) {
 			pss = ps
 		}
 
-		stat := Bench(connNum, url)
+		stat := BenchWRK(connNum, url)
 		stats = append(stats, stat)
 
 		if procName != "" {
