@@ -42,7 +42,8 @@ func Start(conns []int, procName, url string) {
 			pss = ps
 		}
 
-		stat := BenchWRK(connNum, url)
+		//stat := BenchWRK(connNum, url)
+		stat := BenchHttp(connNum, url)
 		stats = append(stats, stat)
 
 		if procName != "" {
