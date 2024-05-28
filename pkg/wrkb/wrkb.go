@@ -9,12 +9,6 @@ import (
 	"time"
 )
 
-type BenchStat struct {
-	ConnNum int
-	RPS     int
-	Latency time.Duration
-}
-
 func Start(conns []int, procName, url string) {
 
 	if procName != "" {
@@ -43,7 +37,11 @@ func Start(conns []int, procName, url string) {
 		}
 
 		//stat := BenchWRK(connNum, url)
-		stat := BenchHttp(connNum, url)
+		stat := BenchHTTP(BenchParam{
+			ConnNum:  connNum,
+			URL:      url,
+			Duration: 1 * time.Second,
+		})
 		stats = append(stats, stat)
 
 		if procName != "" {
