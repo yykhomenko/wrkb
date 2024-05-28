@@ -82,8 +82,7 @@ func BenchHTTP(param BenchParam) BenchStat {
 		}
 	}
 
-	goodBadCnt := stat.GoodCnt + stat.BadCnt
-	stat.RPS = int(float64(goodBadCnt) / param.Duration.Seconds())
-	stat.Latency = time.Duration(stat.Latency.Nanoseconds() / int64(goodBadCnt))
+	stat.RPS = int(float64(stat.GoodCnt+stat.BadCnt) / param.Duration.Seconds())
+	stat.Latency = time.Duration(stat.Latency.Nanoseconds() / int64(stat.GoodCnt+stat.BadCnt))
 	return stat
 }
