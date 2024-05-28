@@ -3,7 +3,6 @@ package wrkb
 import (
 	"fmt"
 	"github.com/valyala/fasthttp"
-	"math/rand"
 	"os"
 	"time"
 )
@@ -11,6 +10,7 @@ import (
 type BenchParam struct {
 	ConnNum  int
 	URL      string
+	Method   string
 	Duration time.Duration
 }
 
@@ -42,20 +42,17 @@ func BenchHTTP(param BenchParam) BenchStat {
 		ConnNum: param.ConnNum,
 	}
 
-	low := int64(380670000001)
-	high := int64(380679999999)
-
 	startTime := time.Now()
-
 	for {
-		msisdn := low + rand.Int63n(high-low+1)
 		req := fasthttp.AcquireRequest()
-
-		//req.SetRequestURI(fmt.Sprintf("http://127.0.0.1:8080/hashes/%d", msisdn))
-		req.SetRequestURI(fmt.Sprintf("http://127.0.0.1:8080/subscribers/%d", msisdn))
-
-		req.Header.SetMethod(fasthttp.MethodGet)
+		req.SetRequestURI(substitute(param.URL))
+		req.Header.SetMethod(param.Method)
 		resp := fasthttp.AcquireResponse()
+
+		//println("=================================")
+		//println(param.URL)
+		//println(substitute(param.URL))
+		//println("=================================")
 
 		startTimeReq := time.Now()
 		err := client.Do(req, resp)
@@ -71,7 +68,7 @@ func BenchHTTP(param BenchParam) BenchStat {
 			} else {
 				stat.BadCnt++
 			}
-			//fmt.Printf("DEBUG Response: %s\n", resp.Body())
+			//fmt.Printf("DEBUG Code: %d, Response: %s\n", code, resp.Body())
 		} else {
 			stat.ErrorCnt++
 			_, _ = fmt.Fprintf(os.Stderr, "ERR Connection error: %v\n", err)

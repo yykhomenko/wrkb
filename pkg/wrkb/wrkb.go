@@ -37,6 +37,7 @@ func Start(conns []int, procName, url string) {
 		}
 
 		//stat := BenchWRK(connNum, url)
+
 		stat := BenchHTTP(BenchParam{
 			ConnNum:  connNum,
 			URL:      url,
