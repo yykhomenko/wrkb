@@ -17,7 +17,7 @@ func substitute(s string) string {
 	}
 }
 
-var nameFuncRegexp = regexp.MustCompile(`%(\w+?)%.*%`) // TODO use % as delimiter
+var nameFuncRegexp = regexp.MustCompile(`%(\w+?)%.*%`)
 
 func getFuncName(s string) string {
 	matches := nameFuncRegexp.FindStringSubmatch(s)
