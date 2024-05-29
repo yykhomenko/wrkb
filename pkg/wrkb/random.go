@@ -39,13 +39,13 @@ func substituteRandI64(s string) string {
 
 		low, err := strconv.ParseInt(lowStr, 10, 64)
 		if err != nil {
-			log.Printf("error: unable to parse 'low' parameter: %s\n", err.Error())
+			log.Printf("error: RANDI64: unable to parse 'low' parameter: %s\n", err.Error())
 			return s
 		}
 
 		high, err := strconv.ParseInt(highStr, 10, 64)
 		if err != nil {
-			log.Printf("error: unable to parse 'high' parameter: %s\n", err.Error())
+			log.Printf("error: RANDI64: unable to parse 'high' parameter: %s\n", err.Error())
 			return s
 		}
 
