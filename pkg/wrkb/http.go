@@ -26,7 +26,14 @@ type BenchStat struct {
 }
 
 func BenchHTTP(param BenchParam) BenchStat {
+	client := getClient()
+	stat := BenchStat{
+		BenchParam: param,
+	}
+	return benchHTTP(client, stat)
+}
 
+func getClient() *fasthttp.Client {
 	client := &fasthttp.Client{
 		ReadTimeout:                   500 * time.Millisecond,
 		WriteTimeout:                  500 * time.Millisecond,
@@ -39,11 +46,10 @@ func BenchHTTP(param BenchParam) BenchStat {
 			DNSCacheDuration: 1 * time.Hour,
 		}).Dial,
 	}
+	return client
+}
 
-	stat := BenchStat{
-		BenchParam: param,
-	}
-
+func benchHTTP(client *fasthttp.Client, stat BenchStat) BenchStat {
 	startTime := time.Now()
 	for {
 		url := substitute(stat.URL)
@@ -76,12 +82,12 @@ func BenchHTTP(param BenchParam) BenchStat {
 			_, _ = fmt.Fprintf(os.Stderr, "ERR Connection error: %v\n", err)
 		}
 
-		if time.Since(startTime) >= param.Duration {
+		if time.Since(startTime) >= stat.Duration {
 			break
 		}
 	}
 
-	stat.RPS = int(float64(stat.GoodCnt+stat.BadCnt) / param.Duration.Seconds())
+	stat.RPS = int(float64(stat.GoodCnt+stat.BadCnt) / stat.Duration.Seconds())
 	stat.Latency = time.Duration(stat.Latency.Nanoseconds() / int64(stat.GoodCnt+stat.BadCnt))
 	return stat
 }
