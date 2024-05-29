@@ -22,6 +22,7 @@ type BenchStat struct {
 	ErrorCnt int
 	RPS      int
 	Latency  time.Duration
+	BodySize int
 }
 
 func BenchHTTP(param BenchParam) BenchStat {
@@ -62,16 +63,18 @@ func BenchHTTP(param BenchParam) BenchStat {
 
 		fasthttp.ReleaseRequest(req)
 		code := resp.StatusCode()
+		body := resp.Body()
 		fasthttp.ReleaseResponse(resp)
 
 		if err == nil {
 			if code >= 200 && code <= 399 {
 				stat.GoodCnt++
+				stat.BodySize += len(body)
 			} else {
 				stat.BadCnt++
 			}
 			if stat.Verbose {
-				fmt.Printf("DEBUG url: %s\tcode: %d\tbody: %s\n", url, code, resp.Body())
+				//fmt.Printf("DEBUG url: %s\tcode: %d\tbody: %s\n", url, code, body)
 			}
 		} else {
 			stat.ErrorCnt++
