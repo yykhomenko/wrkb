@@ -12,6 +12,7 @@ type BenchParam struct {
 	URL      string
 	Method   string
 	Duration time.Duration
+	Verbose  bool
 }
 
 type BenchStat struct {
@@ -44,9 +45,10 @@ func BenchHTTP(param BenchParam) BenchStat {
 
 	startTime := time.Now()
 	for {
+		url := substitute(stat.URL)
 		req := fasthttp.AcquireRequest()
-		req.SetRequestURI(substitute(param.URL))
-		req.Header.SetMethod(param.Method)
+		req.SetRequestURI(url)
+		req.Header.SetMethod(stat.Method)
 		resp := fasthttp.AcquireResponse()
 
 		//println("=================================")
@@ -68,7 +70,9 @@ func BenchHTTP(param BenchParam) BenchStat {
 			} else {
 				stat.BadCnt++
 			}
-			//fmt.Printf("DEBUG Code: %d, Response: %s\n", code, resp.Body())
+			if stat.Verbose {
+				fmt.Printf("DEBUG url: %s\tcode: %d\tbody: %s\n", url, code, resp.Body())
+			}
 		} else {
 			stat.ErrorCnt++
 			_, _ = fmt.Fprintf(os.Stderr, "ERR Connection error: %v\n", err)

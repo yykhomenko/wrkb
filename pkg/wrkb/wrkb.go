@@ -20,9 +20,9 @@ func Start(conns []int, procName, url string) {
 			procName, ps.CPUTime, ps.CPUNumThreads, humanize.Bytes(uint64(ps.MemRSS)), humanize.Bytes(uint64(ps.BinarySize)))
 	}
 
-	fmt.Printf("┌────┬───────┬─────────┬─────────┬─────────┬─────────┬─────┬────┬───────┐\n")
-	fmt.Printf("│%4s│%7s│%9s│%9s|%9s|%9s|%5s│%4s│%7s│\n", "conn", "rps", "latency", "good", "bad", "err", "cpu", "thr", "mem")
-	fmt.Printf("├────┼───────┼─────────┼─────────┼─────────┼─────────┼─────┼────┼───────┤\n")
+	fmt.Printf("┌────┬──────┬─────────┬────────┬────────┬────────┬─────┬────┬───────┐\n")
+	fmt.Printf("│%4s│%6s│%9s│%8s|%8s|%8s|%5s│%4s│%7s│\n", "conn", "rps", "latency", "good", "bad", "err", "cpu", "thr", "mem")
+	fmt.Printf("├────┼──────┼─────────┼────────┼────────┼────────┼─────┼────┼───────┤\n")
 
 	var stats []BenchStat
 	for _, connNum := range conns {
@@ -43,6 +43,7 @@ func Start(conns []int, procName, url string) {
 			URL:      url,
 			Method:   "GET",
 			Duration: 1 * time.Second,
+			//Verbose:  true,
 		})
 		stats = append(stats, stat)
 
@@ -51,17 +52,17 @@ func Start(conns []int, procName, url string) {
 			if err != nil {
 				log.Fatal(err)
 			}
-			fmt.Printf("│%4d│%7d│%9s│%9d|%9d|%9d|%5.2f│%4d│%7.7s│\n",
+			fmt.Printf("│%4d│%6d│%9s│%8d|%8d|%8d|%5.2f│%4d│%7.7s│\n",
 				stat.ConnNum, stat.RPS, stat.Latency, stat.GoodCnt, stat.BadCnt, stat.ErrorCnt,
 				(psf.CPUTime-pss.CPUTime)/stat.Duration.Seconds(), psf.CPUNumThreads, humanize.Bytes(uint64(psf.MemRSS)),
 			)
 		} else {
-			fmt.Printf("│%4d│%7d│%9s│%9d|%9d|%9d|%5.2s│%4s│%7.7s│\n",
+			fmt.Printf("│%4d│%6d│%9s│%8d|%8d|%8d|%5.2s│%4s│%7.7s│\n",
 				stat.ConnNum, stat.RPS, stat.Latency, stat.GoodCnt, stat.BadCnt, stat.ErrorCnt, "", "", "",
 			)
 		}
 	}
-	fmt.Printf("└────┴───────┴─────────┴─────────┴─────────┴─────────┴─────┴────┴───────┘\n")
+	fmt.Printf("└────┴──────┴─────────┴────────┴────────┴────────┴─────┴────┴───────┘\n")
 
 	stat := findBestBench(stats)
 	fmt.Printf("\nBest: %d, rps: %d, latency: %s\n", stat.ConnNum, stat.RPS, stat.Latency)
