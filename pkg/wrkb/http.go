@@ -52,24 +52,19 @@ func BenchHTTP(param BenchParam) BenchStat {
 		req.Header.SetMethod(stat.Method)
 		resp := fasthttp.AcquireResponse()
 
-		//println("=================================")
-		//println(param.URL)
-		//println(substitute(param.URL))
-		//println("=================================")
-
 		startTimeReq := time.Now()
 		err := client.Do(req, resp)
 		stat.Latency += time.Since(startTimeReq)
 
 		fasthttp.ReleaseRequest(req)
 		code := resp.StatusCode()
-		body := resp.Body()
+		bodyLen := len(resp.Body())
 		fasthttp.ReleaseResponse(resp)
 
 		if err == nil {
 			if code >= 200 && code <= 399 {
 				stat.GoodCnt++
-				stat.BodySize += len(body)
+				stat.BodySize += bodyLen
 			} else {
 				stat.BadCnt++
 			}
