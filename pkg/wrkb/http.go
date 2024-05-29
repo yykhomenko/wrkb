@@ -15,7 +15,8 @@ type BenchParam struct {
 }
 
 type BenchStat struct {
-	ConnNum  int
+	//ConnNum  int
+	BenchParam
 	GoodCnt  int
 	BadCnt   int
 	ErrorCnt int
@@ -39,7 +40,7 @@ func BenchHTTP(param BenchParam) BenchStat {
 	}
 
 	stat := BenchStat{
-		ConnNum: param.ConnNum,
+		BenchParam: param,
 	}
 
 	startTime := time.Now()

@@ -31,7 +31,9 @@ func BenchWRK(connNum int, url string) BenchStat {
 	}
 
 	return BenchStat{
-		ConnNum: connNum,
+		BenchParam: BenchParam{
+			ConnNum: connNum,
+		},
 		RPS:     rps,
 		Latency: latency,
 	}

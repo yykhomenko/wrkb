@@ -17,7 +17,7 @@ func substitute(s string) string {
 	}
 }
 
-var nameFuncRegexp = regexp.MustCompile(`%(\w+?)%.*%`)
+var nameFuncRegexp = regexp.MustCompile(`__(\w+?)_.*__`)
 
 func getFuncName(s string) string {
 	matches := nameFuncRegexp.FindStringSubmatch(s)
@@ -28,7 +28,7 @@ func getFuncName(s string) string {
 	}
 }
 
-var funcRandDRegexp = regexp.MustCompile(`%(\w+?)%([+-]?\d{1,19}),([+-]?\d{1,19})%`)
+var funcRandDRegexp = regexp.MustCompile(`__(\w+?)_([+-]?\d{1,19})_([+-]?\d{1,19})__`)
 
 func substituteRand(s string) string {
 	matches := funcRandDRegexp.FindStringSubmatch(s)

@@ -52,7 +52,8 @@ func Start(conns []int, procName, url string) {
 				log.Fatal(err)
 			}
 			fmt.Printf("│%4d│%7d│%9s│%9d|%9d|%9d|%5.2f│%4d│%7.7s│\n",
-				stat.ConnNum, stat.RPS, stat.Latency, stat.GoodCnt, stat.BadCnt, stat.ErrorCnt, psf.CPUTime-pss.CPUTime, psf.CPUNumThreads, humanize.Bytes(uint64(psf.MemRSS)),
+				stat.ConnNum, stat.RPS, stat.Latency, stat.GoodCnt, stat.BadCnt, stat.ErrorCnt,
+				(psf.CPUTime-pss.CPUTime)/stat.Duration.Seconds(), psf.CPUNumThreads, humanize.Bytes(uint64(psf.MemRSS)),
 			)
 		} else {
 			fmt.Printf("│%4d│%7d│%9s│%9d|%9d|%9d|%5.2s│%4s│%7.7s│\n",
