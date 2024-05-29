@@ -10,8 +10,8 @@ import (
 
 func substitute(s string) string {
 	switch getFuncName(s) {
-	case "RAND":
-		return substitute(substituteRand(s))
+	case "RANDI64":
+		return substitute(substituteRandI64(s))
 	default:
 		return s
 	}
@@ -30,7 +30,7 @@ func getFuncName(s string) string {
 
 var funcRandDRegexp = regexp.MustCompile(`__(\w+?)_([+-]?\d{1,19})_([+-]?\d{1,19})__`)
 
-func substituteRand(s string) string {
+func substituteRandI64(s string) string {
 	matches := funcRandDRegexp.FindStringSubmatch(s)
 	if matches != nil {
 		toReplace := matches[0]
