@@ -117,9 +117,9 @@ func benchHTTP(client *fasthttp.Client, param BenchParam) BenchStat {
 			} else {
 				stat.BadCnt++
 			}
-			if param.Verbose {
-				//fmt.Printf("DEBUG url: %s\tcode: %d\tbody: %s\n", url, code, body)
-			}
+			//if param.Verbose {
+			//	fmt.Printf("DEBUG url: %s\tcode: %d\n", url, code)
+			//}
 		} else {
 			stat.ErrorCnt++
 			_, _ = fmt.Fprintf(os.Stderr, "ERR Connection error: %v\n", err)
