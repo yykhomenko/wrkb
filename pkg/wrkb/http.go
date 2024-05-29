@@ -15,7 +15,6 @@ type BenchParam struct {
 }
 
 type BenchStat struct {
-	//ConnNum  int
 	BenchParam
 	GoodCnt  int
 	BadCnt   int
@@ -64,7 +63,7 @@ func BenchHTTP(param BenchParam) BenchStat {
 		fasthttp.ReleaseResponse(resp)
 
 		if err == nil {
-			if code >= 200 && code < 399 {
+			if code >= 200 && code <= 399 {
 				stat.GoodCnt++
 			} else {
 				stat.BadCnt++
