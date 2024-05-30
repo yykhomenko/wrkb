@@ -12,15 +12,14 @@ go build ./cmd/...
 ./wrkb pico-http  http://127.0.0.1:8082/
 ```
 
-also possible use RANDI64 function it replaces to random number
+Also possible use RANDI64 function it replaces to random number
 ```
 ./wrkb hashes http://127.0.0.1:8080/hashes/__RANDI64_380670000001_380679999999__
 
 ./wrkb hashes http://127.0.0.1:8080/hashes/380670000001
 ```
 
-where 'main' is target local process name
-
+Example. 'pico-http' is target local process name. Optional.
 ```
 Process "pico-http" starts with:
 cpu: 0.005858
