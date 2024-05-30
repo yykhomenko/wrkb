@@ -41,7 +41,7 @@ type BenchResult struct {
 }
 
 func (s BenchResult) CalcStat() BenchResult {
-	s.RPS = int(float64(s.Stat.GoodCnt+s.Stat.BadCnt) / (float64(s.Stat.Time.Seconds() / float64(s.Param.ConnNum))))
+	s.RPS = int(float64(s.Stat.GoodCnt+s.Stat.BadCnt) / (s.Stat.Time.Seconds() / float64(s.Param.ConnNum)))
 	s.Latency = time.Duration(s.Stat.Time.Nanoseconds() / int64(s.Stat.GoodCnt+s.Stat.BadCnt))
 	return s
 }
@@ -118,7 +118,7 @@ func benchHTTP(client *fasthttp.Client, param BenchParam) BenchStat {
 				stat.BadCnt++
 			}
 			//if param.Verbose {
-			//	fmt.Printf("DEBUG url: %s\tcode: %d\n", url, code)
+			//fmt.Printf("DEBUG url: %s\tcode: %d\n", url, code)
 			//}
 		} else {
 			stat.ErrorCnt++
