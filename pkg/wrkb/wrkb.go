@@ -6,6 +6,7 @@ import (
 	"log"
 	"math"
 	"sort"
+	"time"
 	//"time"
 )
 
@@ -36,15 +37,15 @@ func Start(conns []int, procName, url string) {
 			pss = ps
 		}
 
-		result := BenchWRK(connNum, url)
+		//result := BenchWRK(connNum, url)
 
-		//result := BenchHTTP(BenchParam{
-		//	ConnNum:  connNum,
-		//	URL:      url,
-		//	Method:   "GET",
-		//	Duration: 1 * time.Second,
-		//	Verbose:  true,
-		//})
+		result := BenchHTTP(BenchParam{
+			ConnNum:  connNum,
+			URL:      url,
+			Method:   "GET",
+			Duration: 1 * time.Second,
+			Verbose:  true,
+		})
 		results = append(results, result)
 
 		if procName != "" {

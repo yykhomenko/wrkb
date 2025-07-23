@@ -41,8 +41,13 @@ type BenchResult struct {
 }
 
 func (s BenchResult) CalcStat() BenchResult {
+
 	s.RPS = int(float64(s.Stat.GoodCnt+s.Stat.BadCnt) / (s.Stat.Time.Seconds() / float64(s.Param.ConnNum)))
-	s.Latency = time.Duration(s.Stat.Time.Nanoseconds() / int64(s.Stat.GoodCnt+s.Stat.BadCnt))
+
+	if s.Stat.GoodCnt+s.Stat.BadCnt != 0 {
+		s.Latency = time.Duration(s.Stat.Time.Nanoseconds() / int64(s.Stat.GoodCnt+s.Stat.BadCnt))
+	}
+
 	return s
 }
 
