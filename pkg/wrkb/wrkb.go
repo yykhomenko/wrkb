@@ -7,7 +7,6 @@ import (
 	"math"
 	"sort"
 	"time"
-	//"time"
 )
 
 func Start(conns []int, procName, url string) {
