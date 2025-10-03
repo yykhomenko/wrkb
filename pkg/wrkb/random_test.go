@@ -1,6 +1,7 @@
 package wrkb
 
 import (
+	"regexp"
 	"testing"
 )
 
@@ -42,5 +43,19 @@ func TestFuncRandDRegexp(t *testing.T) {
 			t.Errorf("for %q got low=%q high=%q; want low=%q high=%q",
 				tt.input, matches[2], matches[3], tt.wantLow, tt.wantHigh)
 		}
+	}
+}
+
+func TestSubstituteRandHex_LengthAndFormat(t *testing.T) {
+	input := "__RANDHEX_32__"
+	out := substituteRandHex(input)
+
+	if len(out) != 32 {
+		t.Errorf("got length %d, want 32", len(out))
+	}
+
+	match, _ := regexp.MatchString("^[0-9a-f]+$", out)
+	if !match {
+		t.Errorf("output %q contains non-hex characters", out)
 	}
 }
