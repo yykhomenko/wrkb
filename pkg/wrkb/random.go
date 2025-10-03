@@ -1,6 +1,7 @@
 package wrkb
 
 import (
+	"encoding/hex"
 	"log"
 	"math/rand"
 	"regexp"
@@ -12,6 +13,8 @@ func substitute(s string) string {
 	switch getFuncName(s) {
 	case "RANDI64":
 		return substitute(substituteRandI64(s))
+	case "RANDHEX":
+		return substitute(substituteRandHex(s))
 	default:
 		return s
 	}
@@ -54,4 +57,31 @@ func substituteRandI64(s string) string {
 	} else {
 		return s
 	}
+}
+
+var funcRandHexRegexp = regexp.MustCompile(`__(\w+?)_(\d{1,3})__`)
+
+func substituteRandHex(s string) string {
+	matches := funcRandHexRegexp.FindStringSubmatch(s)
+	if matches != nil {
+		toReplace := matches[0]
+		lengthStr := matches[2]
+
+		length, err := strconv.Atoi(lengthStr)
+		if err != nil {
+			log.Printf("error: RANDHEX: unable to parse 'length' parameter: %s\n", err.Error())
+			return s
+		}
+
+		buf := make([]byte, (length+1)/2)
+		_, err = rand.Read(buf)
+		if err != nil {
+			log.Printf("error: RANDHEX: %s\n", err.Error())
+			return s
+		}
+
+		hexStr := hex.EncodeToString(buf)[:length]
+		return strings.Replace(s, toReplace, hexStr, 1)
+	}
+	return s
 }

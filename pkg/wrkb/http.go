@@ -2,10 +2,11 @@ package wrkb
 
 import (
 	"fmt"
-	"github.com/valyala/fasthttp"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/valyala/fasthttp"
 )
 
 type BenchParam struct {
