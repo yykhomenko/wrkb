@@ -27,9 +27,9 @@ Also possible use RANDI64 function it replaces to random number
 ```
 
 ```
-./wrkb hashes http://127.0.0.1:8082/hashes/__RANDSTR_lettersdigits_16__
+./wrkb hashes http://127.0.0.1:8082/msisdns/__RANDSTR_lettersdigits_16__
 
-./wrkb hashes http://127.0.0.1:8082/hashes/a8F3xY09LmZ2QcWp
+./wrkb hashes http://127.0.0.1:8082/msisdns/a8F3xY09LmZ2QcWp
 ```
 
 Example. 'pico-http' is target local process name. Optional.
