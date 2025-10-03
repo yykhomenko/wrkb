@@ -2,6 +2,8 @@ package wrkb
 
 import (
 	"regexp"
+	"strconv"
+	"strings"
 	"testing"
 )
 
@@ -71,5 +73,46 @@ func TestSubstituteRandStr_LettersDigits(t *testing.T) {
 	match, _ := regexp.MatchString("^[a-zA-Z0-9]+$", out)
 	if !match {
 		t.Errorf("output %q contains invalid characters", out)
+	}
+}
+
+func TestSubstitute_MultipleFunctions(t *testing.T) {
+	input := "http://localhost:8080/messages?from=__RANDI64_700_777__&text=__RANDSTR_lettersdigits_8__"
+	out := substitute(input)
+
+	if strings.Contains(out, "__RANDI64") {
+		t.Errorf("RANDI64 not substituted in %q", out)
+	}
+	if strings.Contains(out, "__RANDSTR") {
+		t.Errorf("RANDSTR not substituted in %q", out)
+	}
+
+	parts := strings.Split(out, "?")
+	if len(parts) != 2 {
+		t.Fatalf("invalid URL format: %q", out)
+	}
+
+	params := parts[1]
+	vals := strings.Split(params, "&")
+	if len(vals) != 2 {
+		t.Fatalf("unexpected query params: %q", params)
+	}
+
+	from := strings.Split(vals[0], "=")[1]
+	n, err := strconv.Atoi(from)
+	if err != nil {
+		t.Errorf("expected number for 'from', got %q", from)
+	}
+	if n < 700 || n > 777 {
+		t.Errorf("from=%d out of range 700–777", n)
+	}
+
+	text := strings.Split(vals[1], "=")[1]
+	if len(text) != 8 {
+		t.Errorf("text=%q length=%d; want 8", text, len(text))
+	}
+	match, _ := regexp.MatchString("^[a-zA-Z0-9]+$", text)
+	if !match {
+		t.Errorf("text=%q contains invalid characters", text)
 	}
 }

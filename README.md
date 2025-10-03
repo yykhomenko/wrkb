@@ -32,6 +32,11 @@ Also possible use RANDI64 function it replaces to random number
 ./wrkb hashes http://127.0.0.1:8082/msisdns/a8F3xY09LmZ2QcWp
 ```
 
+```
+./wrkb mars http://localhost:8080/messages\?from\=__RANDI64_700_777__\&to\=__RANDI64_380670000001_380670099999__\&text\=__RANDSTR_lettersdigits_16__
+./wrkb mars http://localhost:8080/messages?from=752&to=380670058287&text=uW7EmXejS9tvtkeo
+```
+
 Example. 'pico-http' is target local process name. Optional.
 
 ```
