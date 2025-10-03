@@ -59,3 +59,17 @@ func TestSubstituteRandHex_LengthAndFormat(t *testing.T) {
 		t.Errorf("output %q contains non-hex characters", out)
 	}
 }
+
+func TestSubstituteRandStr_LettersDigits(t *testing.T) {
+	input := "__RANDSTR_lettersdigits_16__"
+	out := substituteRandStr(input)
+
+	if len(out) != 16 {
+		t.Errorf("got length %d, want 16", len(out))
+	}
+
+	match, _ := regexp.MatchString("^[a-zA-Z0-9]+$", out)
+	if !match {
+		t.Errorf("output %q contains invalid characters", out)
+	}
+}
