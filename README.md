@@ -13,18 +13,27 @@ go build ./cmd/...
 ```
 
 Also possible use RANDI64 function it replaces to random number
+
 ```
 ./wrkb hashes http://127.0.0.1:8082/hashes/__RANDI64_380670000001_380679999999__
 
 ./wrkb hashes http://127.0.0.1:8082/hashes/380670000001
 ```
+
 ```
 ./wrkb hashes http://127.0.0.1:8082/msisdns/__RANDHEX_32__
 
 ./wrkb hashes http://127.0.0.1:8082/msisdns/4a9f2c87b0d3e1f4ac56e7c2d18a9b77
 ```
 
+```
+./wrkb hashes http://127.0.0.1:8082/hashes/__RANDSTR_lettersdigits_16__
+
+./wrkb hashes http://127.0.0.1:8082/hashes/a8F3xY09LmZ2QcWp
+```
+
 Example. 'pico-http' is target local process name. Optional.
+
 ```
 Process "pico-http" starts with:
 cpu: 0.005858

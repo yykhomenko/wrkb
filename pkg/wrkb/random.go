@@ -15,6 +15,8 @@ func substitute(s string) string {
 		return substitute(substituteRandI64(s))
 	case "RANDHEX":
 		return substitute(substituteRandHex(s))
+	case "RANDSTR":
+		return substitute(substituteRandStr(s))
 	default:
 		return s
 	}
@@ -82,6 +84,41 @@ func substituteRandHex(s string) string {
 
 		hexStr := hex.EncodeToString(buf)[:length]
 		return strings.Replace(s, toReplace, hexStr, 1)
+	}
+	return s
+}
+
+var funcRandStrRegexp = regexp.MustCompile(`__RANDSTR_(\w+)_(\d{1,3})__`)
+
+func substituteRandStr(s string) string {
+	matches := funcRandStrRegexp.FindStringSubmatch(s)
+	if matches != nil {
+		toReplace := matches[0]
+		charset := matches[1]
+		lengthStr := matches[2]
+
+		length, err := strconv.Atoi(lengthStr)
+		if err != nil || length <= 0 {
+			return s
+		}
+
+		var chars string
+		switch charset {
+		case "letters":
+			chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		case "digits":
+			chars = "0123456789"
+		case "lettersdigits":
+			chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+		default:
+			return s
+		}
+
+		b := make([]byte, length)
+		for i := range b {
+			b[i] = chars[rand.Intn(len(chars))]
+		}
+		return strings.Replace(s, toReplace, string(b), 1)
 	}
 	return s
 }
