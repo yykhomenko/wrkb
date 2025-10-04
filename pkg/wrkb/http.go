@@ -103,8 +103,8 @@ func benchHTTP(client *fasthttp.Client, param BenchParam) BenchStat {
 	for {
 		url := substitute(param.URL)
 		req := fasthttp.AcquireRequest()
-		req.SetRequestURI(url)
 		req.Header.SetMethod(param.Method)
+		req.SetRequestURI(url)
 		resp := fasthttp.AcquireResponse()
 
 		startTimeReq := time.Now()
@@ -113,7 +113,7 @@ func benchHTTP(client *fasthttp.Client, param BenchParam) BenchStat {
 
 		fasthttp.ReleaseRequest(req)
 		code := resp.StatusCode()
-		bodyLen := len(resp.Body())
+		bodyLen := resp.Header.ContentLength()
 		fasthttp.ReleaseResponse(resp)
 
 		if err == nil {

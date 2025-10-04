@@ -116,3 +116,31 @@ func TestSubstitute_MultipleFunctions(t *testing.T) {
 		t.Errorf("text=%q contains invalid characters", text)
 	}
 }
+
+func BenchmarkSubstituteRandI64(b *testing.B) {
+	input := "__RANDI64_1000_9999__"
+	for i := 0; i < b.N; i++ {
+		_ = substituteRandI64(input)
+	}
+}
+
+func BenchmarkSubstituteRandHex(b *testing.B) {
+	input := "__RANDHEX_64__"
+	for i := 0; i < b.N; i++ {
+		_ = substituteRandHex(input)
+	}
+}
+
+func BenchmarkSubstituteRandStr(b *testing.B) {
+	input := "__RANDSTR_lettersdigits_32__"
+	for i := 0; i < b.N; i++ {
+		_ = substituteRandStr(input)
+	}
+}
+
+func BenchmarkSubstituteMultiple(b *testing.B) {
+	input := "http://localhost:8080/messages?from=__RANDI64_700_777__&to=__RANDI64_380670000001_380670099999__&text=__RANDSTR_lettersdigits_16__"
+	for i := 0; i < b.N; i++ {
+		_ = substitute(input)
+	}
+}

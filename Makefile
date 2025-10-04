@@ -4,6 +4,9 @@ build: ## Build version
 test:	## Run tests
 	go test -race -timeout 10s ./...
 
+bench:
+	go test -bench=. -benchmem ./...
+
 run: ## Run version
 	go run ./cmd/... main http://127.0.0.1
 
