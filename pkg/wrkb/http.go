@@ -1,6 +1,7 @@
 package wrkb
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sync"
@@ -8,6 +9,8 @@ import (
 
 	"github.com/valyala/fasthttp"
 )
+
+// --- Основні типи ------------------------------------------------------------
 
 type BenchParam struct {
 	ProcName string
@@ -19,12 +22,19 @@ type BenchParam struct {
 }
 
 type BenchStat struct {
-	GoodCnt  int
-	BadCnt   int
-	ErrorCnt int
-	BodySize int
-	Time     time.Duration
+	GoodCnt, BadCnt, ErrorCnt int
+	BodySize                  int
+	Time                      time.Duration
 }
+
+type BenchResult struct {
+	Param   BenchParam
+	Stat    BenchStat
+	RPS     int
+	Latency time.Duration
+}
+
+// --- Агрегація ---------------------------------------------------------------
 
 func (s BenchStat) Add(other BenchStat) BenchStat {
 	s.GoodCnt += other.GoodCnt
@@ -35,106 +45,111 @@ func (s BenchStat) Add(other BenchStat) BenchStat {
 	return s
 }
 
-type BenchResult struct {
-	Param   BenchParam
-	Stat    BenchStat
-	RPS     int
-	Latency time.Duration
-}
-
-func (s BenchResult) CalcStat() BenchResult {
-
-	s.RPS = int(float64(s.Stat.GoodCnt+s.Stat.BadCnt) / (s.Stat.Time.Seconds() / float64(s.Param.ConnNum)))
-
-	if s.Stat.GoodCnt+s.Stat.BadCnt != 0 {
-		s.Latency = time.Duration(s.Stat.Time.Nanoseconds() / int64(s.Stat.GoodCnt+s.Stat.BadCnt))
+func (r BenchResult) CalcStat() BenchResult {
+	total := r.Stat.GoodCnt + r.Stat.BadCnt
+	if total == 0 {
+		return r
 	}
-
-	return s
+	r.RPS = int(float64(total) / (r.Stat.Time.Seconds() / float64(r.Param.ConnNum)))
+	r.Latency = time.Duration(r.Stat.Time.Nanoseconds() / int64(total))
+	return r
 }
+
+// --- Основна логіка ----------------------------------------------------------
 
 func BenchHTTP(param BenchParam) BenchResult {
-	client := getClient(param)
+	client := newClient(param)
+	ctx, cancel := context.WithTimeout(context.Background(), param.Duration)
+	defer cancel()
 
-	wg := &sync.WaitGroup{}
 	stats := make(chan BenchStat, param.ConnNum)
+	wg := sync.WaitGroup{}
 
-	for i := 1; i <= param.ConnNum; i++ {
+	for i := 0; i < param.ConnNum; i++ {
 		wg.Add(1)
-		go func(i int, results chan<- BenchStat, wg *sync.WaitGroup) {
+		go func() {
 			defer wg.Done()
-			stats <- benchHTTP(client, param)
-		}(i, stats, wg)
+			stat := runWorker(ctx, client, param)
+			stats <- stat
+		}()
 	}
 
-	wg.Wait()
-	close(stats)
+	// Очікуємо завершення
+	go func() {
+		wg.Wait()
+		close(stats)
+	}()
 
-	stat := BenchStat{}
+	final := BenchStat{}
 	for s := range stats {
-		//fmt.Printf("%+v\n", s)
-		stat = stat.Add(s)
+		final = final.Add(s)
 	}
 
 	return (BenchResult{
 		Param: param,
-		Stat:  stat,
+		Stat:  final,
 	}).CalcStat()
 }
 
-func getClient(param BenchParam) *fasthttp.Client {
-	client := &fasthttp.Client{
-		ReadTimeout:                   500 * time.Millisecond,
-		WriteTimeout:                  500 * time.Millisecond,
-		MaxIdleConnDuration:           1 * time.Hour,
-		NoDefaultUserAgentHeader:      true,
-		DisableHeaderNamesNormalizing: true,
-		DisablePathNormalizing:        true,
+// --- Worker для одного потоку -----------------------------------------------
+
+func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam) BenchStat {
+	var stat BenchStat
+	for {
+		select {
+		case <-ctx.Done():
+			return stat
+		default:
+			start := time.Now()
+			code, size, err := makeRequest(client, param)
+			stat.Time += time.Since(start)
+
+			switch {
+			case err != nil:
+				stat.ErrorCnt++
+				_, _ = fmt.Fprintf(os.Stderr, "ERR: %v\n", err)
+			case code >= 200 && code < 400:
+				stat.GoodCnt++
+				stat.BodySize += size
+			default:
+				stat.BadCnt++
+			}
+		}
+	}
+}
+
+// --- HTTP логіка -------------------------------------------------------------
+
+func makeRequest(client *fasthttp.Client, param BenchParam) (int, int, error) {
+	url := substitute(param.URL)
+
+	req := fasthttp.AcquireRequest()
+	req.Header.SetMethod(param.Method)
+	req.SetRequestURI(url)
+
+	resp := fasthttp.AcquireResponse()
+	err := client.Do(req, resp)
+
+	code := resp.StatusCode()
+	size := resp.Header.ContentLength()
+
+	if param.Verbose {
+		fmt.Printf("DEBUG %s → %d\n", url, code)
+	}
+
+	fasthttp.ReleaseRequest(req)
+	fasthttp.ReleaseResponse(resp)
+	return code, size, err
+}
+
+func newClient(param BenchParam) *fasthttp.Client {
+	return &fasthttp.Client{
+		ReadTimeout:              1 * time.Second,
+		WriteTimeout:             1 * time.Second,
+		MaxIdleConnDuration:      1 * time.Hour,
+		NoDefaultUserAgentHeader: true,
 		Dial: (&fasthttp.TCPDialer{
-			Concurrency:      param.ConnNum,
 			DNSCacheDuration: 1 * time.Hour,
 		}).Dial,
 	}
-	return client
-}
-
-func benchHTTP(client *fasthttp.Client, param BenchParam) BenchStat {
-	stat := BenchStat{}
-	startTime := time.Now()
-	for {
-		url := substitute(param.URL)
-		req := fasthttp.AcquireRequest()
-		req.Header.SetMethod(param.Method)
-		req.SetRequestURI(url)
-		resp := fasthttp.AcquireResponse()
-
-		startTimeReq := time.Now()
-		err := client.Do(req, resp)
-		stat.Time += time.Since(startTimeReq)
-
-		fasthttp.ReleaseRequest(req)
-		code := resp.StatusCode()
-		bodyLen := resp.Header.ContentLength()
-		fasthttp.ReleaseResponse(resp)
-
-		if err == nil {
-			if code >= 200 && code <= 399 {
-				stat.GoodCnt++
-				stat.BodySize += bodyLen
-			} else {
-				stat.BadCnt++
-			}
-			if param.Verbose {
-				fmt.Printf("DEBUG url: %s\tcode: %d\n", url, code)
-			}
-		} else {
-			stat.ErrorCnt++
-			_, _ = fmt.Fprintf(os.Stderr, "ERR Connection error: %v\n", err)
-		}
-
-		if time.Since(startTime) >= param.Duration {
-			break
-		}
-	}
-	return stat
 }
