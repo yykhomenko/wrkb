@@ -36,8 +36,6 @@ func Start(params []BenchParam) {
 			pss = ps
 		}
 
-		//result := BenchWRK(connNum, url)
-
 		result := BenchHTTP(p)
 		results = append(results, result)
 
