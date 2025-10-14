@@ -10,6 +10,7 @@ import (
 )
 
 type BenchParam struct {
+	ProcName string
 	ConnNum  int
 	URL      string
 	Method   string
@@ -123,9 +124,9 @@ func benchHTTP(client *fasthttp.Client, param BenchParam) BenchStat {
 			} else {
 				stat.BadCnt++
 			}
-			//if param.Verbose {
-			//fmt.Printf("DEBUG url: %s\tcode: %d\n", url, code)
-			//}
+			if param.Verbose {
+				fmt.Printf("DEBUG url: %s\tcode: %d\n", url, code)
+			}
 		} else {
 			stat.ErrorCnt++
 			_, _ = fmt.Fprintf(os.Stderr, "ERR Connection error: %v\n", err)

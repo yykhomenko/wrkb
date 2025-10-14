@@ -4,37 +4,39 @@ WRK benchmark load HTTP requests and pick stats.
 After benchmarks done it prints bench results.
 
 ```
-go run ./cmd/... main http://127.0.0.1/
+go run ./cmd/... -p=main http://127.0.0.1/
 
 or
 
 go build ./cmd/...
-./wrkb pico-http  http://127.0.0.1:8082/
+./wrkb -p=pico-http  http://127.0.0.1:8082/
 ```
 
 Also possible use RANDI64 function it replaces to random number
 
 ```
-./wrkb hashes http://127.0.0.1:8082/hashes/__RANDI64_380670000001_380679999999__
+./wrkb -p=hashes http://127.0.0.1:8082/hashes/__RANDI64_380670000001_380679999999__
 
-./wrkb hashes http://127.0.0.1:8082/hashes/380670000001
+./wrkb -p=hashes http://127.0.0.1:8082/hashes/380670000001
 ```
 
 ```
-./wrkb hashes http://127.0.0.1:8082/msisdns/__RANDHEX_32__
+./wrkb -p=hashes http://127.0.0.1:8082/msisdns/__RANDHEX_32__
 
-./wrkb hashes http://127.0.0.1:8082/msisdns/4a9f2c87b0d3e1f4ac56e7c2d18a9b77
+./wrkb -p=hashes http://127.0.0.1:8082/msisdns/4a9f2c87b0d3e1f4ac56e7c2d18a9b77
+
+./wrkb -p=hashes -c=1,2,4,8,16 http://127.0.0.1:8082/msisdns/4a9f2c87b0d3e1f4ac56e7c2d18a9b77
 ```
 
 ```
-./wrkb hashes http://127.0.0.1:8082/msisdns/__RANDSTR_lettersdigits_16__
+./wrkb -p=hashes http://127.0.0.1:8082/msisdns/__RANDSTR_lettersdigits_16__
 
-./wrkb hashes http://127.0.0.1:8082/msisdns/a8F3xY09LmZ2QcWp
+./wrkb -p=hashes http://127.0.0.1:8082/msisdns/a8F3xY09LmZ2QcWp
 ```
 
 ```
-./wrkb mars http://localhost:8080/messages\?from\=__RANDI64_700_777__\&to\=__RANDI64_380670000001_380670099999__\&text\=__RANDSTR_lettersdigits_16__
-./wrkb mars http://localhost:8080/messages?from=752&to=380670058287&text=uW7EmXejS9tvtkeo
+./wrkb -p=mars http://localhost:8080/messages\?from\=__RANDI64_700_777__\&to\=__RANDI64_380670000001_380670099999__\&text\=__RANDSTR_lettersdigits_16__
+./wrkb -p=mars http://localhost:8080/messages?from=752&to=380670058287&text=uW7EmXejS9tvtkeo
 ```
 
 Example. 'pico-http' is target local process name. Optional.

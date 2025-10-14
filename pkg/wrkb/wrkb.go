@@ -2,22 +2,22 @@ package wrkb
 
 import (
 	"fmt"
-	"github.com/dustin/go-humanize"
 	"log"
 	"math"
 	"sort"
-	"time"
+
+	"github.com/dustin/go-humanize"
 )
 
-func Start(conns []int, procName, url string) {
+func Start(params []BenchParam) {
 
-	if procName != "" {
-		ps, err := Ps(procName)
+	if params[0].ProcName != "" {
+		ps, err := Ps(params[0].ProcName)
 		if err != nil {
 			log.Fatal(err)
 		}
 		fmt.Printf("\nProcess %q starts with:\ncpu: %f\nthreads: %d\nmem: %s\ndisk: %s\n\n",
-			procName, ps.CPUTime, ps.CPUNumThreads, humanize.Bytes(uint64(ps.MemRSS)), humanize.Bytes(uint64(ps.BinarySize)))
+			params[0].ProcName, ps.CPUTime, ps.CPUNumThreads, humanize.Bytes(uint64(ps.MemRSS)), humanize.Bytes(uint64(ps.BinarySize)))
 	}
 
 	fmt.Printf("┌────┬──────┬──────────┬────────┬────────┬────────┬───────┬─────┬────┬───────┐\n")
@@ -25,11 +25,11 @@ func Start(conns []int, procName, url string) {
 	fmt.Printf("├────┼──────┼──────────┼────────┼────────┼────────┼───────┼─────┼────┼───────┤\n")
 
 	var results []BenchResult
-	for _, connNum := range conns {
+	for _, p := range params {
 
 		var pss *PsStat
-		if procName != "" {
-			ps, err := Ps(procName)
+		if p.ProcName != "" {
+			ps, err := Ps(p.ProcName)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -38,17 +38,11 @@ func Start(conns []int, procName, url string) {
 
 		//result := BenchWRK(connNum, url)
 
-		result := BenchHTTP(BenchParam{
-			ConnNum:  connNum,
-			URL:      url,
-			Method:   "GET",
-			Duration: 1 * time.Second,
-			Verbose:  true,
-		})
+		result := BenchHTTP(p)
 		results = append(results, result)
 
-		if procName != "" {
-			psf, err := Ps(procName)
+		if p.ProcName != "" {
+			psf, err := Ps(p.ProcName)
 			if err != nil {
 				log.Fatal(err)
 			}
