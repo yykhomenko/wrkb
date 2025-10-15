@@ -71,7 +71,7 @@ func main() {
 			method := strings.ToUpper(c.String("m"))
 			verbose := c.Bool("v")
 
-			fmt.Printf("⚙️ Preparing benchmark: '%s' [%s] for %s\n", procName, method, url)
+			fmt.Printf("⚙️  Preparing benchmark: '%s' [%s] for %s\n", procName, method, url)
 			fmt.Printf("   Connections: %v | Duration: %v | Verbose: %v\n", conns, duration, verbose)
 
 			var params []wrkb.BenchParam

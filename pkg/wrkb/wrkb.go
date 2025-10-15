@@ -33,7 +33,7 @@ func Start(params []BenchParam) {
 			log.Fatal(err)
 		}
 		fmt.Printf("\n%s⚙️  Process:%s %s\n", cyan, reset, params[0].ProcName)
-		fmt.Printf("%sCPU:%s %.2fs | %sThreads:%s %d | %sMem:%s %s | %sDisk:%s %s\n\n",
+		fmt.Printf("%s   CPU:%s %.2fs | %sThreads:%s %d | %sMem:%s %s | %sDisk:%s %s\n\n",
 			gray, reset, ps.CPUTime,
 			gray, reset, ps.CPUNumThreads,
 			gray, reset, humanize.Bytes(uint64(ps.MemRSS)),
@@ -52,7 +52,7 @@ func Start(params []BenchParam) {
 
 	icon := randomStartIcon()
 
-	fmt.Printf("\n%s %sBest result:%s %d connections | %s%d RPS%s | %s%s latency%s\n\n",
+	fmt.Printf("\n%s %s Best result:%s %d connections | %s%d RPS%s | %s%s latency%s\n\n",
 		icon,
 		yellow, reset, best.Param.ConnNum,
 		green, best.RPS, reset,
