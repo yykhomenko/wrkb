@@ -39,12 +39,12 @@ func main() {
 			&cli.StringFlag{
 				Name:  "c",
 				Usage: "Comma-separated list of connections, e.g. 1,2,4,8,16",
-				Value: "1,2,4,8,16,32,64,128",
+				Value: "1,2,4,8,16,32,64,128,256",
 			},
 			&cli.IntFlag{
 				Name:    "t",
 				Usage:   "Duration of test in seconds",
-				Value:   10,
+				Value:   1,
 				Aliases: []string{"time"},
 			},
 			&cli.BoolFlag{

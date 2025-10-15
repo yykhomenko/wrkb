@@ -6,6 +6,7 @@ import (
 	mathrand "math/rand"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -16,13 +17,15 @@ func init() {
 
 // Основна точка входу — підставляє всі патерни в рядок
 func substitute(s string) string {
-	if s == "" {
-		return s
+	if len(s) == 0 || !strings.Contains(s, "__RAND") {
+		return s // швидкий вихід для статичних URL
 	}
 
-	// Визначаємо, чи містить рядок будь-яку з наших функцій
-	for _, fn := range []subFn{subRandI64, subRandHex, subRandStr} {
-		s = fn(s)
+	// Використовуємо predeclared slice (без виділень)
+	subFns := [...]subFn{subRandI64, subRandHex, subRandStr}
+
+	for i := range subFns {
+		s = subFns[i](s)
 	}
 
 	return s

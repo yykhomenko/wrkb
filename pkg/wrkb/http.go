@@ -129,6 +129,7 @@ func makeRequest(client *fasthttp.Client, param BenchParam) (int, int, error) {
 
 	resp := fasthttp.AcquireResponse()
 	err := client.Do(req, resp)
+	fasthttp.ReleaseRequest(req)
 
 	code := resp.StatusCode()
 	size := resp.Header.ContentLength()
@@ -137,17 +138,19 @@ func makeRequest(client *fasthttp.Client, param BenchParam) (int, int, error) {
 		fmt.Printf("DEBUG %s → %d\n", url, code)
 	}
 
-	fasthttp.ReleaseRequest(req)
 	fasthttp.ReleaseResponse(resp)
 	return code, size, err
 }
 
 func newClient(param BenchParam) *fasthttp.Client {
 	return &fasthttp.Client{
-		ReadTimeout:              1 * time.Second,
-		WriteTimeout:             1 * time.Second,
-		MaxIdleConnDuration:      1 * time.Hour,
-		NoDefaultUserAgentHeader: true,
+		MaxConnsPerHost:               0,
+		ReadTimeout:                   1 * time.Second,
+		WriteTimeout:                  1 * time.Second,
+		MaxIdleConnDuration:           1 * time.Minute,
+		DisablePathNormalizing:        true,
+		DisableHeaderNamesNormalizing: true,
+		NoDefaultUserAgentHeader:      true,
 		Dial: (&fasthttp.TCPDialer{
 			DNSCacheDuration: 1 * time.Hour,
 		}).Dial,
