@@ -21,6 +21,18 @@ install: ## Install version
 clean: ## Clean project
 	rm -f wrkb
 
+bench_pico:
+	go run ./... \
+		-v \
+		-p=pico \
+		-c=1 \
+		-rps=10 \
+	  -t=1 \
+	  -m=POST \
+	  -H 'Authorization: Bearer eyJ4NXQi' \
+	  -d='{"msisdn": __RANDI64_380670000001_380679999999__}' \
+	  http://127.0.0.1:8088/t
+
 help:
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / \
   {printf "\033[36m%-16s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)

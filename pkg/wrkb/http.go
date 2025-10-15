@@ -22,6 +22,7 @@ type BenchParam struct {
 	Verbose  bool
 	RPSLimit float64
 	Body     string
+	Headers  []string
 }
 
 type BenchStat struct {
@@ -155,13 +156,24 @@ func makeRequest(client *fasthttp.Client, param BenchParam) (int, int, error) {
 	req.Header.SetMethod(param.Method)
 	req.SetRequestURI(url)
 
+	// --- встановлюємо заголовки ---
+	for _, h := range param.Headers {
+		parts := strings.SplitN(h, ":", 2)
+		if len(parts) == 2 {
+			req.Header.Set(strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]))
+		}
+	}
+
+	// --- тіло запиту ---
 	var body string
 	if param.Body != "" {
-		if strings.Contains(param.Body, "__") {
-			body = substitute(param.Body)
-		}
+		body = substitute(param.Body)
 		req.SetBodyString(body)
-		req.Header.Set("Content-Type", "application/json")
+
+		// якщо користувач не вказав Content-Type — додаємо стандартний JSON
+		if req.Header.Peek("Content-Type") == nil {
+			req.Header.Set("Content-Type", "application/json")
+		}
 	}
 
 	resp := fasthttp.AcquireResponse()
@@ -171,7 +183,6 @@ func makeRequest(client *fasthttp.Client, param BenchParam) (int, int, error) {
 	size := resp.Header.ContentLength()
 
 	if param.Verbose {
-		fmt.Println(substitute(param.Body))
 		fmt.Printf("DEBUG %s → %d %s %s\n", url, code, param.Method, body)
 	}
 

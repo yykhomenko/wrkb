@@ -69,6 +69,11 @@ func main() {
 				Aliases: []string{"data"},
 				Usage:   "Request body to send with POST/PUT/PATCH requests (e.g. JSON string)",
 			},
+			&cli.StringSliceFlag{
+				Name:    "H",
+				Aliases: []string{"header"},
+				Usage:   "Custom HTTP header(s), e.g. -H 'Authorization: Bearer XXX' -H 'Content-Type: application/json'",
+			},
 		},
 		Action: func(c *cli.Context) error {
 			if c.Args().Len() < 1 {
@@ -83,6 +88,7 @@ func main() {
 			verbose := c.Bool("v")
 			rpsLimit := c.Float64("rps")
 			body := c.String("d")
+			headers := c.StringSlice("H")
 
 			fmt.Printf("⚙️  Preparing benchmark: '%s' [%s] for %s\n", procName, method, url)
 			fmt.Printf("   Connections: %v | Duration: %v | Verbose: %v\n", conns, duration, verbose)
@@ -98,6 +104,7 @@ func main() {
 					Verbose:  verbose,
 					RPSLimit: rpsLimit,
 					Body:     body,
+					Headers:  headers,
 				})
 			}
 
