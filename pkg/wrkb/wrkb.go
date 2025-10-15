@@ -4,104 +4,118 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"math/rand"
 	"sort"
 	"time"
 
 	"github.com/dustin/go-humanize"
 )
 
-// Start — основна функція запуску бенчмарку
+const (
+	reset  = "\033[0m"
+	green  = "\033[1;32m"
+	red    = "\033[1;31m"
+	yellow = "\033[1;33m"
+	cyan   = "\033[1;36m"
+	gray   = "\033[90m"
+)
+
 func Start(params []BenchParam) {
 	if len(params) == 0 {
 		log.Fatal("no benchmark parameters provided")
 	}
 
-	var (
-		results []BenchResult
-		proc    *PsStat
-	)
+	var results []BenchResult
 
-	// Якщо заданий процес — зафіксуємо його початковий стан
 	if params[0].ProcName != "" {
 		ps, err := Ps(params[0].ProcName)
 		if err != nil {
 			log.Fatal(err)
 		}
-		proc = ps
-		fmt.Printf(
-			"\nProcess %q starts with:\ncpu: %.2f\nthreads: %d\nmem: %s\ndisk: %s\n\n",
-			params[0].ProcName, ps.CPUTime, ps.CPUNumThreads,
-			humanize.Bytes(uint64(ps.MemRSS)), humanize.Bytes(uint64(ps.BinarySize)),
-		)
+		fmt.Printf("\n%s⚙️  Process:%s %s\n", cyan, reset, params[0].ProcName)
+		fmt.Printf("%sCPU:%s %.2fs | %sThreads:%s %d | %sMem:%s %s | %sDisk:%s %s\n\n",
+			gray, reset, ps.CPUTime,
+			gray, reset, ps.CPUNumThreads,
+			gray, reset, humanize.Bytes(uint64(ps.MemRSS)),
+			gray, reset, humanize.Bytes(uint64(ps.BinarySize)))
 	}
 
 	printHeader()
 
-	// Основний цикл — по кількості конекшнів
 	for _, p := range params {
-		results = append(results, runSingleBenchmark(p, proc))
+		results = append(results, runSingleBenchmark(p))
 	}
 
 	printFooter()
 
-	// Знаходимо найкращий результат
 	best := findBestResult(results)
-	fmt.Printf("\n✨ Best: %d connections | %d RPS | %s latency\n",
-		best.Param.ConnNum, best.RPS, best.Latency)
+
+	icon := randomStartIcon()
+
+	fmt.Printf("\n%s %sBest result:%s %d connections | %s%d RPS%s | %s%s latency%s\n\n",
+		icon,
+		yellow, reset, best.Param.ConnNum,
+		green, best.RPS, reset,
+		red, best.Latency, reset,
+	)
 }
 
-// runSingleBenchmark — обробка одного параметра
-func runSingleBenchmark(p BenchParam, procStart *PsStat) BenchResult {
+func runSingleBenchmark(p BenchParam) BenchResult {
 	var psBefore *PsStat
 	if p.ProcName != "" {
-		ps, err := Ps(p.ProcName)
-		if err != nil {
-			log.Fatal(err)
-		}
+		ps, _ := Ps(p.ProcName)
 		psBefore = ps
 	}
 
 	start := time.Now()
 	result := BenchHTTP(p)
-	duration := time.Since(start)
+	elapsed := time.Since(start)
 
-	if p.ProcName != "" {
-		psAfter, err := Ps(p.ProcName)
-		if err != nil {
-			log.Fatal(err)
-		}
-		cpuUsage := (psAfter.CPUTime - psBefore.CPUTime) / duration.Seconds()
-		printRow(result, cpuUsage, psAfter.CPUNumThreads, int64(psAfter.MemRSS))
-	} else {
-		printRow(result, 0, 0, 0)
+	var cpu float64
+	var thr int
+	var mem int64
+
+	if p.ProcName != "" && psBefore != nil {
+		psAfter, _ := Ps(p.ProcName)
+		cpu = (psAfter.CPUTime - psBefore.CPUTime) / elapsed.Seconds()
+		thr = psAfter.CPUNumThreads
+		mem = int64(psAfter.MemRSS)
 	}
+
+	printRow(result, cpu, thr, mem)
 	return result
 }
 
 func printHeader() {
-	fmt.Println("┌────┬──────┬──────────┬────────┬────────┬────────┬───────┬─────┬────┬───────┐")
-	fmt.Printf("│%4s│%6s│%10s│%8s|%8s|%8s|%7s|%5s│%4s│%7s│\n",
-		"conn", "rps", "latency", "good", "bad", "err", "body", "cpu", "thr", "mem")
-	fmt.Println("├────┼──────┼──────────┼────────┼────────┼────────┼───────┼─────┼────┼───────┤")
+	fmt.Printf("\n%s┌────┬────────┬────────────┬────────┬────────┬────────┬────────┬─────┬────┬────────┐%s\n", gray, reset)
+	fmt.Printf("%s│%4s│%8s│%12s│%8s│%8s│%8s│%8s│%5s│%4s│%8s│%s\n",
+		gray, "conn", "rps", "latency", "good", "bad", "err", "body", "cpu", "thr", "mem", reset)
+	fmt.Printf("%s├────┼────────┼────────────┼────────┼────────┼────────┼────────┼─────┼────┼────────┤%s\n", gray, reset)
 }
 
 func printFooter() {
-	fmt.Println("└────┴──────┴──────────┴────────┴────────┴────────┴───────┴─────┴────┴───────┘")
+	fmt.Printf("%s└────┴────────┴────────────┴────────┴────────┴────────┴────────┴─────┴────┴────────┘%s\n", gray, reset)
 }
 
 func printRow(result BenchResult, cpu float64, threads int, memRSS int64) {
 	bodySize := humanize.Bytes(uint64(result.Stat.BodySize))
-	if threads > 0 {
-		fmt.Printf("│%4d│%6d│%10s│%8d|%8d|%8d|%7.7s|%5.2f│%4d│%7.7s│\n",
-			result.Param.ConnNum, result.RPS, result.Latency,
-			result.Stat.GoodCnt, result.Stat.BadCnt, result.Stat.ErrorCnt,
-			bodySize, cpu, threads, humanize.Bytes(uint64(memRSS)))
-	} else {
-		fmt.Printf("│%4d│%6d│%10s│%8d|%8d|%8d|%7.7s|%5s│%4s│%7.7s│\n",
-			result.Param.ConnNum, result.RPS, result.Latency,
-			result.Stat.GoodCnt, result.Stat.BadCnt, result.Stat.ErrorCnt,
-			bodySize, "", "", "")
-	}
+	fmt.Printf("│%4d│%s%8d%s│%s%12s%s│%8d│%8d│%8d│%8s│%s%5.2f%s│%4d│%8s│\n",
+		result.Param.ConnNum,
+		green, result.RPS, reset,
+		red, result.Latency, reset,
+		result.Stat.GoodCnt, result.Stat.BadCnt, result.Stat.ErrorCnt,
+		bodySize,
+		yellow, cpu, reset,
+		threads,
+		humanize.Bytes(uint64(memRSS)),
+	)
+}
+
+// randomStartIcon — випадкова початкова іконка для "Best result"
+func randomStartIcon() string {
+	icons := []string{"✨", "🌟", "💫", "⚡️", "🚀", "🔥", "🏅", "💎", "🧠", "🎯"}
+	rand.Seed(time.Now().UnixNano())
+	return icons[rand.Intn(len(icons))]
 }
 
 // findBestResult — знаходить оптимальний результат по співвідношенню RPS/latency
