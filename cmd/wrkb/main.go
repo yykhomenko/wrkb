@@ -58,6 +58,17 @@ func main() {
 				Usage:   "HTTP method (GET, POST, etc.)",
 				Value:   "GET",
 			},
+			&cli.Float64Flag{
+				Name:    "rps",
+				Aliases: []string{"rate"},
+				Usage:   "Limit requests per second per connection (0 = unlimited)",
+				Value:   0,
+			},
+			&cli.StringFlag{
+				Name:    "d",
+				Aliases: []string{"data"},
+				Usage:   "Request body to send with POST/PUT/PATCH requests (e.g. JSON string)",
+			},
 		},
 		Action: func(c *cli.Context) error {
 			if c.Args().Len() < 1 {
@@ -70,6 +81,8 @@ func main() {
 			duration := time.Duration(c.Int("t")) * time.Second
 			method := strings.ToUpper(c.String("m"))
 			verbose := c.Bool("v")
+			rpsLimit := c.Float64("rps")
+			body := c.String("d")
 
 			fmt.Printf("⚙️  Preparing benchmark: '%s' [%s] for %s\n", procName, method, url)
 			fmt.Printf("   Connections: %v | Duration: %v | Verbose: %v\n", conns, duration, verbose)
@@ -83,6 +96,8 @@ func main() {
 					Method:   method,
 					Duration: duration,
 					Verbose:  verbose,
+					RPSLimit: rpsLimit,
+					Body:     body,
 				})
 			}
 

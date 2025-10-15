@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -19,6 +20,8 @@ type BenchParam struct {
 	Method   string
 	Duration time.Duration
 	Verbose  bool
+	RPSLimit float64
+	Body     string
 }
 
 type BenchStat struct {
@@ -50,8 +53,13 @@ func (r BenchResult) CalcStat() BenchResult {
 	if total == 0 {
 		return r
 	}
-	r.RPS = int(float64(total) / (r.Stat.Time.Seconds() / float64(r.Param.ConnNum)))
+
+	// Загальний RPS = кількість запитів / час тесту
+	r.RPS = int(float64(total) / r.Param.Duration.Seconds())
+
+	// Середня латентність = середній час одного запиту
 	r.Latency = time.Duration(r.Stat.Time.Nanoseconds() / int64(total))
+
 	return r
 }
 
@@ -74,7 +82,6 @@ func BenchHTTP(param BenchParam) BenchResult {
 		}()
 	}
 
-	// Очікуємо завершення
 	go func() {
 		wg.Wait()
 		close(stats)
@@ -95,11 +102,30 @@ func BenchHTTP(param BenchParam) BenchResult {
 
 func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam) BenchStat {
 	var stat BenchStat
+
+	// Якщо встановлено RPS-ліміт — створюємо інтервал між запитами
+	var limiter <-chan time.Time
+	if param.RPSLimit > 0 {
+		interval := time.Second / time.Duration(param.RPSLimit)
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		limiter = ticker.C
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
 			return stat
 		default:
+			// чекаємо сигнал від обмежувача, якщо задано
+			if limiter != nil {
+				select {
+				case <-limiter:
+				case <-ctx.Done():
+					return stat
+				}
+			}
+
 			start := time.Now()
 			code, size, err := makeRequest(client, param)
 			stat.Time += time.Since(start)
@@ -107,7 +133,9 @@ func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam) B
 			switch {
 			case err != nil:
 				stat.ErrorCnt++
-				_, _ = fmt.Fprintf(os.Stderr, "ERR: %v\n", err)
+				if param.Verbose {
+					fmt.Fprintf(os.Stderr, "ERR: %v\n", err)
+				}
 			case code >= 200 && code < 400:
 				stat.GoodCnt++
 				stat.BodySize += size
@@ -127,24 +155,33 @@ func makeRequest(client *fasthttp.Client, param BenchParam) (int, int, error) {
 	req.Header.SetMethod(param.Method)
 	req.SetRequestURI(url)
 
+	var body string
+	if param.Body != "" {
+		if strings.Contains(param.Body, "__") {
+			body = substitute(param.Body)
+		}
+		req.SetBodyString(body)
+		req.Header.Set("Content-Type", "application/json")
+	}
+
 	resp := fasthttp.AcquireResponse()
 	err := client.Do(req, resp)
-	fasthttp.ReleaseRequest(req)
 
 	code := resp.StatusCode()
 	size := resp.Header.ContentLength()
 
 	if param.Verbose {
-		fmt.Printf("DEBUG %s → %d\n", url, code)
+		fmt.Println(substitute(param.Body))
+		fmt.Printf("DEBUG %s → %d %s %s\n", url, code, param.Method, body)
 	}
 
+	fasthttp.ReleaseRequest(req)
 	fasthttp.ReleaseResponse(resp)
 	return code, size, err
 }
 
 func newClient(param BenchParam) *fasthttp.Client {
 	return &fasthttp.Client{
-		MaxConnsPerHost:               0,
 		ReadTimeout:                   1 * time.Second,
 		WriteTimeout:                  1 * time.Second,
 		MaxIdleConnDuration:           1 * time.Minute,

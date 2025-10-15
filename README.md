@@ -37,6 +37,9 @@ Also possible use RANDI64 function it replaces to random number
 ```
 ./wrkb -p=mars http://localhost:8080/messages\?from\=__RANDI64_700_777__\&to\=__RANDI64_380670000001_380670099999__\&text\=__RANDSTR_lettersdigits_16__
 ./wrkb -p=mars http://localhost:8080/messages?from=752&to=380670058287&text=uW7EmXejS9tvtkeo
+
+
+./wrkb -p=pico -c=1 -rps=10 -t=1 -d='{"msisdn": __RANDI64_380670000001_380679999999__}' -v http://127.0.0.1:8088/t
 ```
 
 Example. 'pico-http' is target local process name. Optional.
