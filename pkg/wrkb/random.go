@@ -10,18 +10,15 @@ import (
 	"time"
 )
 
-// Ініціалізуємо генератор псевдорандому
 func init() {
 	mathrand.Seed(time.Now().UnixNano())
 }
 
-// Основна точка входу — підставляє всі патерни в рядок
 func substitute(s string) string {
 	if len(s) == 0 || !strings.Contains(s, "__RAND") {
-		return s // швидкий вихід для статичних URL
+		return s
 	}
 
-	// Використовуємо predeclared slice (без виділень)
 	subFns := [...]subFn{subRandI64, subRandHex, subRandStr}
 
 	for i := range subFns {
@@ -31,10 +28,9 @@ func substitute(s string) string {
 	return s
 }
 
-// Тип функції-підстановки
 type subFn func(string) string
 
-// 🧮 RANDI64 — __RANDI64_<low>_<high>__
+// RANDI64 — __RANDI64_<low>_<high>__
 var reRandI64 = regexp.MustCompile(`__RANDI64_([+-]?\d{1,19})_([+-]?\d{1,19})__`)
 
 func subRandI64(s string) string {
@@ -54,7 +50,7 @@ func subRandI64(s string) string {
 	})
 }
 
-// 🧩 RANDHEX — __RANDHEX_<len>__
+// RANDHEX — __RANDHEX_<len>__
 var reRandHex = regexp.MustCompile(`__RANDHEX_(\d{1,3})__`)
 
 func subRandHex(s string) string {
@@ -68,7 +64,6 @@ func subRandHex(s string) string {
 			return match
 		}
 
-		// генеруємо байти криптостійким способом
 		buf := make([]byte, (length+1)/2)
 		if _, err := rand.Read(buf); err != nil {
 			return match

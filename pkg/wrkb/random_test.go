@@ -8,7 +8,6 @@ import (
 	"testing"
 )
 
-// ✅ RANDI64: базовий тест
 func TestSubRandI64_Range(t *testing.T) {
 	input := "__RANDI64_10_20__"
 
@@ -24,7 +23,6 @@ func TestSubRandI64_Range(t *testing.T) {
 	}
 }
 
-// ✅ RANDHEX: різна довжина і hex формат
 func TestSubRandHex_LengthAndFormat(t *testing.T) {
 	for _, n := range []int{1, 8, 15, 32, 63} {
 		in := fmt.Sprintf("__RANDHEX_%d__", n)
@@ -39,7 +37,6 @@ func TestSubRandHex_LengthAndFormat(t *testing.T) {
 	}
 }
 
-// ✅ RANDSTR: перевірка різних charset
 func TestSubRandStr_Charsets(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -65,7 +62,6 @@ func TestSubRandStr_Charsets(t *testing.T) {
 	}
 }
 
-// ✅ substitute(): інтеграційний тест для кількох функцій
 func TestSubstitute_MultiplePatterns(t *testing.T) {
 	input := "http://localhost:8080/messages?from=__RANDI64_700_777__&text=__RANDSTR_lettersdigits_8__&token=__RANDHEX_12__"
 	out := substitute(input)
@@ -83,7 +79,6 @@ func TestSubstitute_MultiplePatterns(t *testing.T) {
 	}
 }
 
-// ✅ substitute(): якщо немає патернів — рядок не змінюється
 func TestSubstitute_NoPattern(t *testing.T) {
 	input := "https://example.com/static/path"
 	out := substitute(input)
@@ -91,10 +86,6 @@ func TestSubstitute_NoPattern(t *testing.T) {
 		t.Errorf("expected unchanged output, got %q", out)
 	}
 }
-
-//
-// 🧪 Benchmarks
-//
 
 func BenchmarkSubRandI64(b *testing.B) {
 	input := "__RANDI64_1000_9999__"

@@ -11,8 +11,6 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-// --- Основні типи ------------------------------------------------------------
-
 type BenchParam struct {
 	ProcName string
 	ConnNum  int
@@ -38,8 +36,6 @@ type BenchResult struct {
 	Latency time.Duration
 }
 
-// --- Агрегація ---------------------------------------------------------------
-
 func (s BenchStat) Add(other BenchStat) BenchStat {
 	s.GoodCnt += other.GoodCnt
 	s.BadCnt += other.BadCnt
@@ -55,16 +51,11 @@ func (r BenchResult) CalcStat() BenchResult {
 		return r
 	}
 
-	// Загальний RPS = кількість запитів / час тесту
 	r.RPS = int(float64(total) / r.Param.Duration.Seconds())
-
-	// Середня латентність = середній час одного запиту
 	r.Latency = time.Duration(r.Stat.Time.Nanoseconds() / int64(total))
 
 	return r
 }
-
-// --- Основна логіка ----------------------------------------------------------
 
 func BenchHTTP(param BenchParam) BenchResult {
 	client := newClient(param)
@@ -99,12 +90,23 @@ func BenchHTTP(param BenchParam) BenchResult {
 	}).CalcStat()
 }
 
-// --- Worker для одного потоку -----------------------------------------------
+func newClient(param BenchParam) *fasthttp.Client {
+	return &fasthttp.Client{
+		ReadTimeout:                   1 * time.Second,
+		WriteTimeout:                  1 * time.Second,
+		MaxIdleConnDuration:           1 * time.Minute,
+		DisablePathNormalizing:        true,
+		DisableHeaderNamesNormalizing: true,
+		NoDefaultUserAgentHeader:      true,
+		Dial: (&fasthttp.TCPDialer{
+			DNSCacheDuration: 1 * time.Hour,
+		}).Dial,
+	}
+}
 
 func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam) BenchStat {
 	var stat BenchStat
 
-	// Якщо встановлено RPS-ліміт — створюємо інтервал між запитами
 	var limiter <-chan time.Time
 	if param.RPSLimit > 0 {
 		interval := time.Second / time.Duration(param.RPSLimit)
@@ -118,7 +120,6 @@ func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam) B
 		case <-ctx.Done():
 			return stat
 		default:
-			// чекаємо сигнал від обмежувача, якщо задано
 			if limiter != nil {
 				select {
 				case <-limiter:
@@ -147,8 +148,6 @@ func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam) B
 	}
 }
 
-// --- HTTP логіка -------------------------------------------------------------
-
 func makeRequest(client *fasthttp.Client, param BenchParam) (int, int, error) {
 	url := substitute(param.URL)
 
@@ -156,7 +155,6 @@ func makeRequest(client *fasthttp.Client, param BenchParam) (int, int, error) {
 	req.Header.SetMethod(param.Method)
 	req.SetRequestURI(url)
 
-	// --- встановлюємо заголовки ---
 	for _, h := range param.Headers {
 		parts := strings.SplitN(h, ":", 2)
 		if len(parts) == 2 {
@@ -164,43 +162,56 @@ func makeRequest(client *fasthttp.Client, param BenchParam) (int, int, error) {
 		}
 	}
 
-	// --- тіло запиту ---
 	var body string
 	if param.Body != "" {
 		body = substitute(param.Body)
 		req.SetBodyString(body)
 
-		// якщо користувач не вказав Content-Type — додаємо стандартний JSON
 		if req.Header.Peek("Content-Type") == nil {
 			req.Header.Set("Content-Type", "application/json")
 		}
 	}
 
 	resp := fasthttp.AcquireResponse()
+
+	if param.Verbose {
+		fmt.Printf("*   Trying %s...\n", req.URI().Host())
+		fmt.Printf("* Connected to %s (%s)\n", req.URI().Host(), req.URI().Host())
+		fmt.Printf("> %s %s HTTP/1.1\n", req.Header.Method(), req.URI().PathOriginal())
+		fmt.Printf("> Host: %s\n", req.URI().Host())
+		req.Header.VisitAll(func(k, v []byte) {
+			fmt.Printf("> %s: %s\n", k, v)
+		})
+		if len(body) > 0 {
+			fmt.Printf(">\n> %s\n", body)
+		}
+		fmt.Printf("> \n* Request completely sent off\n")
+	}
+
+	start := time.Now()
 	err := client.Do(req, resp)
+	elapsed := time.Since(start)
 
 	code := resp.StatusCode()
 	size := resp.Header.ContentLength()
 
 	if param.Verbose {
-		fmt.Printf("DEBUG %s → %d %s %s\n", url, code, param.Method, body)
+		statusLine := fmt.Sprintf("< HTTP/1.1 %d %s", code, fasthttp.StatusMessage(code))
+		fmt.Println(statusLine)
+		resp.Header.VisitAll(func(k, v []byte) {
+			fmt.Printf("< %s: %s\n", k, v)
+		})
+		fmt.Printf("< \n")
+
+		body := resp.Body()
+		if len(body) > 0 {
+			fmt.Println(string(body))
+		}
+
+		fmt.Printf("* Connection closed | time: %v | size: %d bytes\n\n", elapsed, size)
 	}
 
 	fasthttp.ReleaseRequest(req)
 	fasthttp.ReleaseResponse(resp)
 	return code, size, err
-}
-
-func newClient(param BenchParam) *fasthttp.Client {
-	return &fasthttp.Client{
-		ReadTimeout:                   1 * time.Second,
-		WriteTimeout:                  1 * time.Second,
-		MaxIdleConnDuration:           1 * time.Minute,
-		DisablePathNormalizing:        true,
-		DisableHeaderNamesNormalizing: true,
-		NoDefaultUserAgentHeader:      true,
-		Dial: (&fasthttp.TCPDialer{
-			DNSCacheDuration: 1 * time.Hour,
-		}).Dial,
-	}
 }

@@ -11,7 +11,6 @@ import (
 
 var mockServerURL string
 
-// 🔧 TestMain піднімає мок-сервер один раз перед усіма тестами/бенчами
 func TestMain(m *testing.M) {
 	// простий сервер, який відповідає залежно від запиту
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +36,6 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-// 🧠 helper для зручності
 func baseParams(conn int, path string) BenchParam {
 	return BenchParam{
 		URL:      mockServerURL + path,
@@ -48,7 +46,6 @@ func baseParams(conn int, path string) BenchParam {
 	}
 }
 
-// ✅ базовий тест (перевіряє, що запит працює)
 func TestBenchHTTP_Basic(t *testing.T) {
 	param := baseParams(4, "/")
 	res := BenchHTTP(param)
@@ -63,7 +60,6 @@ func TestBenchHTTP_Basic(t *testing.T) {
 	t.Logf("RPS: %d, latency: %v", res.RPS, res.Latency)
 }
 
-// 🧪 тестує різні сценарії
 func TestBenchHTTP_Scenarios(t *testing.T) {
 	tests := []struct {
 		name string
@@ -85,7 +81,6 @@ func TestBenchHTTP_Scenarios(t *testing.T) {
 	}
 }
 
-// ⚙️ Benchmark — той самий код, але для вимірювання продуктивності
 func BenchmarkBenchHTTP(b *testing.B) {
 	connLevels := []int{1, 2, 4, 8}
 

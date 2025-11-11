@@ -53,7 +53,7 @@ func main() {
 				Usage:   "Enable verbose output",
 			},
 			&cli.StringFlag{
-				Name:    "m",
+				Name:    "X",
 				Aliases: []string{"method"},
 				Usage:   "HTTP method (GET, POST, etc.)",
 				Value:   "GET",
@@ -84,11 +84,13 @@ func main() {
 			procName := c.String("p")
 			conns := parseConnections(c.String("c"))
 			duration := time.Duration(c.Int("t")) * time.Second
-			method := strings.ToUpper(c.String("m"))
+			method := strings.ToUpper(c.String("X"))
 			verbose := c.Bool("v")
 			rpsLimit := c.Float64("rps")
 			body := c.String("d")
 			headers := c.StringSlice("H")
+
+			fmt.Println(verbose)
 
 			fmt.Printf("⚙️  Preparing benchmark: '%s' [%s] for %s\n", procName, method, url)
 			fmt.Printf("   Connections: %v | Duration: %v | Verbose: %v\n", conns, duration, verbose)

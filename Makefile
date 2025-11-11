@@ -23,15 +23,13 @@ clean: ## Clean project
 
 bench_pico:
 	go run ./... \
-		-v \
-		-p=pico \
-		-c=1 \
-		-rps=10 \
+		-p=main \
+		-c=32 \
 	  -t=1 \
-	  -m=POST \
+	  -X=POST \
 	  -H 'Authorization: Bearer eyJ4NXQi' \
 	  -d='{"msisdn": __RANDI64_380670000001_380679999999__}' \
-	  http://127.0.0.1:8088/t
+	  http://127.0.0.1:8088/
 
 help:
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / \
