@@ -87,24 +87,26 @@ func runSingleBenchmark(p BenchParam) BenchResult {
 }
 
 func printHeader() {
-	fmt.Printf("\n%s┌────┬────────┬────────────┬────────┬────────┬────────┬────────┬─────┬────┬────────┐%s\n", gray, reset)
-	fmt.Printf("%s│%4s│%8s│%12s│%8s│%8s│%8s│%8s│%5s│%4s│%8s│%s\n",
-		gray, "conn", "rps", "latency", "good", "bad", "err", "body", "cpu", "thr", "mem", reset)
-	fmt.Printf("%s├────┼────────┼────────────┼────────┼────────┼────────┼────────┼─────┼────┼────────┤%s\n", gray, reset)
+	fmt.Printf("\n%s┌────┬────────┬────────────┬────────┬────────┬────────┬─────────┬─────────┬─────┬────┬────────┐%s\n", gray, reset)
+	fmt.Printf("%s│%4s│%8s│%12s│%8s│%8s│%8s│%9s│%9s│%5s│%4s│%8s│%s\n",
+		gray, "conn", "rps", "latency", "good", "bad", "err", "body req", "body resp", "cpu", "thr", "mem", reset)
+	fmt.Printf("%s├────┼────────┼────────────┼────────┼────────┼────────┼─────────┼─────────┼─────┼────┼────────┤%s\n", gray, reset)
 }
 
 func printFooter() {
-	fmt.Printf("%s└────┴────────┴────────────┴────────┴────────┴────────┴────────┴─────┴────┴────────┘%s\n", gray, reset)
+	fmt.Printf("%s└────┴────────┴────────────┴────────┴────────┴────────┴─────────┴─────────┴─────┴────┴────────┘%s\n", gray, reset)
 }
 
 func printRow(result BenchResult, cpu float64, threads int, memRSS int64) {
-	bodySize := humanize.Bytes(uint64(result.Stat.BodyRespSize))
-	fmt.Printf("│%4d│%s%8d%s│%s%12s%s│%8d│%8d│%8d│%8s│%s%5.2f%s│%4d│%8s│\n",
+	bodyReqSize := humanize.Bytes(uint64(result.Stat.BodyReqSize))
+	bodyRespSize := humanize.Bytes(uint64(result.Stat.BodyRespSize))
+	fmt.Printf("│%4d│%s%8d%s│%s%12s%s│%8d│%8d│%8d│%9s│%9s│%s%5.2f%s│%4d│%8s│\n",
 		result.Param.ConnNum,
 		green, result.RPS, reset,
 		red, result.Latency, reset,
 		result.Stat.GoodCnt, result.Stat.BadCnt, result.Stat.ErrorCnt,
-		bodySize,
+		bodyReqSize,
+		bodyRespSize,
 		yellow, cpu, reset,
 		threads,
 		humanize.Bytes(uint64(memRSS)),

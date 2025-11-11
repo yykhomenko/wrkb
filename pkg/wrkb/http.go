@@ -25,6 +25,7 @@ type BenchParam struct {
 
 type BenchStat struct {
 	GoodCnt, BadCnt, ErrorCnt int
+	BodyReqSize               int
 	BodyRespSize              int
 	Time                      time.Duration
 }
@@ -41,6 +42,7 @@ func (s BenchStat) Add(other BenchStat) BenchStat {
 	s.BadCnt += other.BadCnt
 	s.ErrorCnt += other.ErrorCnt
 	s.BodyRespSize += other.BodyRespSize
+	s.BodyReqSize += other.BodyReqSize
 	s.Time += other.Time
 	return s
 }
@@ -149,6 +151,8 @@ func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam) B
 				if req.Header.Peek("Content-Type") == nil {
 					req.Header.Set("Content-Type", "application/json")
 				}
+
+				stat.BodyReqSize += len(body)
 			}
 
 			resp := fasthttp.AcquireResponse()
@@ -172,7 +176,7 @@ func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam) B
 			elapsedReq := time.Since(startReq)
 
 			code := resp.StatusCode()
-			size := resp.Header.ContentLength()
+			bodyRespSize := resp.Header.ContentLength()
 
 			if param.Verbose {
 				statusLine := fmt.Sprintf("< HTTP/1.1 %d %s", code, fasthttp.StatusMessage(code))
@@ -187,7 +191,7 @@ func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam) B
 					fmt.Println(string(body))
 				}
 
-				fmt.Printf("* Connection closed | time: %v | size: %d bytes\n\n", elapsedReq, size)
+				fmt.Printf("* Connection closed | time: %v | bodyRespSize: %d bytes\n\n", elapsedReq, bodyRespSize)
 			}
 
 			fasthttp.ReleaseRequest(req)
@@ -203,7 +207,7 @@ func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam) B
 				}
 			case code >= 200 && code < 400:
 				stat.GoodCnt++
-				stat.BodyRespSize += size
+				stat.BodyRespSize += bodyRespSize
 			default:
 				stat.BadCnt++
 			}
