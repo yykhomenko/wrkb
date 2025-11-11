@@ -25,7 +25,7 @@ bench_pico:
 	go run ./... \
 		-p=main \
 		-c=1 \
-	  -t=5 \
+	  -t=1 \
 	  -X=POST \
 	  -H 'Authorization: Bearer eyJ4NXQi' \
 	  -d='{"msisdn": __RANDI64_380670000001_380679999999__}' \

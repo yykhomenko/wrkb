@@ -111,14 +111,12 @@ func printRow(result BenchResult, cpu float64, threads int, memRSS int64) {
 	)
 }
 
-// randomStartIcon — випадкова початкова іконка для "Best result"
 func randomStartIcon() string {
-	icons := []string{"✨", "🌟", "💫", "⚡️", "🚀", "🔥", "🏅", "💎", "🧠", "🎯"}
+	icons := []string{"✨", "🌟", "💫", "⚡️", "🚀", "🔥", "🏅", "💎"}
 	rand.Seed(time.Now().UnixNano())
 	return icons[rand.Intn(len(icons))]
 }
 
-// findBestResult — знаходить оптимальний результат по співвідношенню RPS/latency
 func findBestResult(stats []BenchResult) BenchResult {
 	sort.Slice(stats, func(i, j int) bool {
 		w1 := float64(stats[i].RPS) / math.Log10(float64(stats[i].Latency.Nanoseconds()))
