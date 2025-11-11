@@ -90,9 +90,7 @@ func main() {
 			body := c.String("d")
 			headers := c.StringSlice("H")
 
-			fmt.Println(verbose)
-
-			fmt.Printf("⚙️  Preparing benchmark: '%s' [%s] for %s\n", procName, method, url)
+			fmt.Printf("\n⚙️  Preparing benchmark: '%s' [%s] for %s\n", procName, method, url)
 			fmt.Printf("   Connections: %v | Duration: %v | Verbose: %v\n", conns, duration, verbose)
 
 			var params []wrkb.BenchParam

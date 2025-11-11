@@ -98,7 +98,7 @@ func printFooter() {
 }
 
 func printRow(result BenchResult, cpu float64, threads int, memRSS int64) {
-	bodySize := humanize.Bytes(uint64(result.Stat.BodySize))
+	bodySize := humanize.Bytes(uint64(result.Stat.BodyRespSize))
 	fmt.Printf("│%4d│%s%8d%s│%s%12s%s│%8d│%8d│%8d│%8s│%s%5.2f%s│%4d│%8s│\n",
 		result.Param.ConnNum,
 		green, result.RPS, reset,

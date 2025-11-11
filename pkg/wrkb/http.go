@@ -25,7 +25,7 @@ type BenchParam struct {
 
 type BenchStat struct {
 	GoodCnt, BadCnt, ErrorCnt int
-	BodySize                  int
+	BodyRespSize              int
 	Time                      time.Duration
 }
 
@@ -40,7 +40,7 @@ func (s BenchStat) Add(other BenchStat) BenchStat {
 	s.GoodCnt += other.GoodCnt
 	s.BadCnt += other.BadCnt
 	s.ErrorCnt += other.ErrorCnt
-	s.BodySize += other.BodySize
+	s.BodyRespSize += other.BodyRespSize
 	s.Time += other.Time
 	return s
 }
@@ -128,9 +128,72 @@ func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam) B
 				}
 			}
 
-			start := time.Now()
-			code, size, err := makeRequest(client, param)
-			stat.Time += time.Since(start)
+			url := substitute(param.URL)
+
+			req := fasthttp.AcquireRequest()
+			req.Header.SetMethod(param.Method)
+			req.SetRequestURI(url)
+
+			for _, h := range param.Headers {
+				parts := strings.SplitN(h, ":", 2)
+				if len(parts) == 2 {
+					req.Header.Set(strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]))
+				}
+			}
+
+			var body string
+			if param.Body != "" {
+				body = substitute(param.Body)
+				req.SetBodyString(body)
+
+				if req.Header.Peek("Content-Type") == nil {
+					req.Header.Set("Content-Type", "application/json")
+				}
+			}
+
+			resp := fasthttp.AcquireResponse()
+
+			if param.Verbose {
+				fmt.Printf("*   Trying %s...\n", req.URI().Host())
+				fmt.Printf("* Connected to %s (%s)\n", req.URI().Host(), req.URI().Host())
+				fmt.Printf("> %s %s HTTP/1.1\n", req.Header.Method(), req.URI().PathOriginal())
+				fmt.Printf("> Host: %s\n", req.URI().Host())
+				req.Header.VisitAll(func(k, v []byte) {
+					fmt.Printf("> %s: %s\n", k, v)
+				})
+				if len(body) > 0 {
+					fmt.Printf(">\n> %s\n", body)
+				}
+				fmt.Printf("> \n* Request completely sent off\n")
+			}
+
+			startReq := time.Now()
+			err := client.Do(req, resp)
+			elapsedReq := time.Since(startReq)
+
+			code := resp.StatusCode()
+			size := resp.Header.ContentLength()
+
+			if param.Verbose {
+				statusLine := fmt.Sprintf("< HTTP/1.1 %d %s", code, fasthttp.StatusMessage(code))
+				fmt.Println(statusLine)
+				resp.Header.VisitAll(func(k, v []byte) {
+					fmt.Printf("< %s: %s\n", k, v)
+				})
+				fmt.Printf("< \n")
+
+				body := resp.Body()
+				if len(body) > 0 {
+					fmt.Println(string(body))
+				}
+
+				fmt.Printf("* Connection closed | time: %v | size: %d bytes\n\n", elapsedReq, size)
+			}
+
+			fasthttp.ReleaseRequest(req)
+			fasthttp.ReleaseResponse(resp)
+
+			stat.Time += elapsedReq
 
 			switch {
 			case err != nil:
@@ -140,78 +203,10 @@ func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam) B
 				}
 			case code >= 200 && code < 400:
 				stat.GoodCnt++
-				stat.BodySize += size
+				stat.BodyRespSize += size
 			default:
 				stat.BadCnt++
 			}
 		}
 	}
-}
-
-func makeRequest(client *fasthttp.Client, param BenchParam) (int, int, error) {
-	url := substitute(param.URL)
-
-	req := fasthttp.AcquireRequest()
-	req.Header.SetMethod(param.Method)
-	req.SetRequestURI(url)
-
-	for _, h := range param.Headers {
-		parts := strings.SplitN(h, ":", 2)
-		if len(parts) == 2 {
-			req.Header.Set(strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]))
-		}
-	}
-
-	var body string
-	if param.Body != "" {
-		body = substitute(param.Body)
-		req.SetBodyString(body)
-
-		if req.Header.Peek("Content-Type") == nil {
-			req.Header.Set("Content-Type", "application/json")
-		}
-	}
-
-	resp := fasthttp.AcquireResponse()
-
-	if param.Verbose {
-		fmt.Printf("*   Trying %s...\n", req.URI().Host())
-		fmt.Printf("* Connected to %s (%s)\n", req.URI().Host(), req.URI().Host())
-		fmt.Printf("> %s %s HTTP/1.1\n", req.Header.Method(), req.URI().PathOriginal())
-		fmt.Printf("> Host: %s\n", req.URI().Host())
-		req.Header.VisitAll(func(k, v []byte) {
-			fmt.Printf("> %s: %s\n", k, v)
-		})
-		if len(body) > 0 {
-			fmt.Printf(">\n> %s\n", body)
-		}
-		fmt.Printf("> \n* Request completely sent off\n")
-	}
-
-	start := time.Now()
-	err := client.Do(req, resp)
-	elapsed := time.Since(start)
-
-	code := resp.StatusCode()
-	size := resp.Header.ContentLength()
-
-	if param.Verbose {
-		statusLine := fmt.Sprintf("< HTTP/1.1 %d %s", code, fasthttp.StatusMessage(code))
-		fmt.Println(statusLine)
-		resp.Header.VisitAll(func(k, v []byte) {
-			fmt.Printf("< %s: %s\n", k, v)
-		})
-		fmt.Printf("< \n")
-
-		body := resp.Body()
-		if len(body) > 0 {
-			fmt.Println(string(body))
-		}
-
-		fmt.Printf("* Connection closed | time: %v | size: %d bytes\n\n", elapsed, size)
-	}
-
-	fasthttp.ReleaseRequest(req)
-	fasthttp.ReleaseResponse(resp)
-	return code, size, err
 }

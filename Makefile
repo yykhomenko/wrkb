@@ -24,8 +24,8 @@ clean: ## Clean project
 bench_pico:
 	go run ./... \
 		-p=main \
-		-c=32 \
-	  -t=1 \
+		-c=1 \
+	  -t=5 \
 	  -X=POST \
 	  -H 'Authorization: Bearer eyJ4NXQi' \
 	  -d='{"msisdn": __RANDI64_380670000001_380679999999__}' \
