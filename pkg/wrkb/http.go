@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/HdrHistogram/hdrhistogram-go"
 	"github.com/valyala/fasthttp"
 )
 
@@ -28,6 +29,7 @@ type BenchStat struct {
 	BodyReqSize               int
 	BodyRespSize              int
 	Time                      time.Duration
+	Histogram                 *hdrhistogram.Histogram
 }
 
 type BenchResult struct {
@@ -35,6 +37,17 @@ type BenchResult struct {
 	Stat    BenchStat
 	RPS     int
 	Latency time.Duration
+	Min     time.Duration
+	P50     time.Duration
+	P90     time.Duration
+	P99     time.Duration
+	P999    time.Duration
+	Max     time.Duration
+}
+
+func newBenchStat() BenchStat {
+	h := hdrhistogram.New(1_000, 10_000_000_000, 3)
+	return BenchStat{Histogram: h}
 }
 
 func (s BenchStat) Add(other BenchStat) BenchStat {
@@ -44,6 +57,14 @@ func (s BenchStat) Add(other BenchStat) BenchStat {
 	s.BodyRespSize += other.BodyRespSize
 	s.BodyReqSize += other.BodyReqSize
 	s.Time += other.Time
+
+	if other.Histogram != nil {
+		if s.Histogram == nil {
+			s.Histogram = other.Histogram
+		} else {
+			s.Histogram.Merge(other.Histogram)
+		}
+	}
 	return s
 }
 
@@ -55,6 +76,13 @@ func (r BenchResult) CalcStat() BenchResult {
 
 	r.RPS = int(float64(total) / r.Param.Duration.Seconds())
 	r.Latency = time.Duration(r.Stat.Time.Nanoseconds() / int64(total))
+
+	r.Min = time.Duration(r.Stat.Histogram.Min()) * time.Nanosecond
+	r.P50 = time.Duration(r.Stat.Histogram.ValueAtQuantile(50.0)) * time.Nanosecond
+	r.P90 = time.Duration(r.Stat.Histogram.ValueAtQuantile(90.0)) * time.Nanosecond
+	r.P99 = time.Duration(r.Stat.Histogram.ValueAtQuantile(99.0)) * time.Nanosecond
+	r.P999 = time.Duration(r.Stat.Histogram.ValueAtQuantile(99.9)) * time.Nanosecond
+	r.Max = time.Duration(r.Stat.Histogram.Max()) * time.Nanosecond
 
 	return r
 }
@@ -107,7 +135,7 @@ func newClient(param BenchParam) *fasthttp.Client {
 }
 
 func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam) BenchStat {
-	var stat BenchStat
+	stat := newBenchStat()
 
 	var limiter <-chan time.Time
 	if param.RPSLimit > 0 {
@@ -198,6 +226,7 @@ func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam) B
 			fasthttp.ReleaseResponse(resp)
 
 			stat.Time += elapsedReq
+			stat.Histogram.RecordValue(elapsedReq.Nanoseconds())
 
 			switch {
 			case err != nil:

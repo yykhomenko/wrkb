@@ -5,6 +5,7 @@ go 1.24.0
 toolchain go1.24.5
 
 require (
+	github.com/HdrHistogram/hdrhistogram-go v1.2.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/urfave/cli/v2 v2.27.7

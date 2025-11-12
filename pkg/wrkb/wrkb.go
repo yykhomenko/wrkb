@@ -52,11 +52,12 @@ func Start(params []BenchParam) {
 
 	icon := randomStartIcon()
 
-	fmt.Printf("\n%s %s Best result:%s %d connections | %s%d RPS%s | %s%s latency%s\n\n",
+	fmt.Printf("\n%s %s Best result:%s %d connections | %s%d RPS%s | %v%s latency%s \nmin=%-8v \np50=%-8v \np90=%-8v \np99=%-8v \np999=%-8v \nmax=%-8v\n\n",
 		icon,
 		yellow, reset, best.Param.ConnNum,
 		green, best.RPS, reset,
 		red, best.Latency, reset,
+		best.Min, best.P50, best.P90, best.P99, best.P999, best.Max,
 	)
 }
 
