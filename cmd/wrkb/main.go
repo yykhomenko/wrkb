@@ -74,6 +74,12 @@ func main() {
 				Aliases: []string{"header"},
 				Usage:   "Custom HTTP header(s), e.g. -H 'Authorization: Bearer XXX' -H 'Content-Type: application/json'",
 			},
+			&cli.StringFlag{
+				Name:    "http-version",
+				Aliases: []string{"V"},
+				Usage:   "HTTP version to use: 1.1 (default), 2, or 3",
+				Value:   "1.1",
+			},
 		},
 		Action: func(c *cli.Context) error {
 			if c.Args().Len() < 1 {
@@ -89,22 +95,29 @@ func main() {
 			rpsLimit := c.Float64("rps")
 			body := c.String("d")
 			headers := c.StringSlice("H")
+			httpVersionInput := c.String("http-version")
+
+			httpVersion, err := wrkb.ValidateHTTPVersion(httpVersionInput)
+			if err != nil {
+				return cli.Exit(err.Error(), 1)
+			}
 
 			fmt.Printf("\n⚙️  Preparing benchmark: '%s' [%s] for %s\n", procName, method, url)
-			fmt.Printf("   Connections: %v | Duration: %v | Verbose: %v\n", conns, duration, verbose)
+			fmt.Printf("   Connections: %v | Duration: %v | Verbose: %v | HTTP: %s\n", conns, duration, verbose, httpVersion)
 
 			var params []wrkb.BenchParam
 			for _, connNum := range conns {
 				params = append(params, wrkb.BenchParam{
-					ProcName: procName,
-					ConnNum:  connNum,
-					URL:      url,
-					Method:   method,
-					Duration: duration,
-					Verbose:  verbose,
-					RPSLimit: rpsLimit,
-					Body:     body,
-					Headers:  headers,
+					ProcName:    procName,
+					ConnNum:     connNum,
+					URL:         url,
+					Method:      method,
+					Duration:    duration,
+					Verbose:     verbose,
+					RPSLimit:    rpsLimit,
+					Body:        body,
+					Headers:     headers,
+					HTTPVersion: httpVersion,
 				})
 			}
 

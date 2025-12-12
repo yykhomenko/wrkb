@@ -8,6 +8,7 @@
 - 🔄 Dynamic payload/URL placeholders for randomized test data
 - 🧠 Intelligent “best result” pick based on RPS vs. latency ratio
 - 🖥️ Optional target-process monitoring (CPU, threads, RSS, binary size) via `-p/--proc`
+- 🌐 Explicit HTTP/1.1, HTTP/2, and HTTP/3 client support
 
 ## Installation
 ### Prerequisites
@@ -44,6 +45,7 @@ Key options:
 | `-X, --method` | HTTP method. | `GET` |
 | `-d, --data` | Request body for write methods. | — |
 | `-H, --header` | Repeatable custom header(s), e.g., `-H "Authorization: Bearer …"`. | — |
+| `-V, --http-version` | HTTP protocol version (`1.1`, `2`, or `3`). | `1.1` |
 | `--rps, --rate` | Per-connection RPS cap (`0` = unlimited). | `0` |
 | `-v, --verbose` | Print per-request details. | `false` |
 
@@ -77,6 +79,12 @@ wrkb -p pico -c=1 -rps=10 -t=1 \
 ```bash
 # Benchmark a local service by process name
 wrkb -p pico-http http://127.0.0.1:8082/
+
+# Force HTTP/2 with verbose output
+wrkb -p pico-http --http-version=2 -v https://127.0.0.1:8082/
+
+# Try HTTP/3 with automatic fallback to HTTP/1.1 when unavailable
+wrkb -p pico-http --http-version=3 https://example.com/
 
 # POST with custom headers across multiple connection counts
 wrkb -p api -X POST -c=1,2,4,8 \

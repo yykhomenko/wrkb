@@ -3,25 +3,27 @@ package wrkb
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/HdrHistogram/hdrhistogram-go"
-	"github.com/valyala/fasthttp"
 )
 
 type BenchParam struct {
-	ProcName string
-	ConnNum  int
-	URL      string
-	Method   string
-	Duration time.Duration
-	Verbose  bool
-	RPSLimit float64
-	Body     string
-	Headers  []string
+	ProcName    string
+	ConnNum     int
+	URL         string
+	Method      string
+	Duration    time.Duration
+	Verbose     bool
+	RPSLimit    float64
+	Body        string
+	Headers     []string
+	HTTPVersion string
 }
 
 type BenchStat struct {
@@ -88,7 +90,18 @@ func (r BenchResult) CalcStat() BenchResult {
 }
 
 func BenchHTTP(param BenchParam) BenchResult {
-	client := newClient(param)
+	client, cleanup, err := NewHTTPClient(param.HTTPVersion)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to initialize HTTP client: %v\n", err)
+		return BenchResult{Param: param, Stat: BenchStat{}}
+	}
+	if cleanup != nil {
+		defer cleanup()
+	}
+
+	if param.Verbose {
+		fmt.Printf("* Using HTTP/%s transport\n", normalizeHTTPVersion(param.HTTPVersion))
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), param.Duration)
 	defer cancel()
 
@@ -120,21 +133,7 @@ func BenchHTTP(param BenchParam) BenchResult {
 	}).CalcStat()
 }
 
-func newClient(param BenchParam) *fasthttp.Client {
-	return &fasthttp.Client{
-		ReadTimeout:                   1 * time.Second,
-		WriteTimeout:                  1 * time.Second,
-		MaxIdleConnDuration:           1 * time.Minute,
-		DisablePathNormalizing:        true,
-		DisableHeaderNamesNormalizing: true,
-		NoDefaultUserAgentHeader:      true,
-		Dial: (&fasthttp.TCPDialer{
-			DNSCacheDuration: 1 * time.Hour,
-		}).Dial,
-	}
-}
-
-func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam) BenchStat {
+func runWorker(ctx context.Context, client *http.Client, param BenchParam) BenchStat {
 	stat := newBenchStat()
 
 	var limiter <-chan time.Time
@@ -160,9 +159,16 @@ func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam) B
 
 			url := substitute(param.URL)
 
-			req := fasthttp.AcquireRequest()
-			req.Header.SetMethod(param.Method)
-			req.SetRequestURI(url)
+			var body string
+			if param.Body != "" {
+				body = substitute(param.Body)
+			}
+
+			req, err := http.NewRequestWithContext(ctx, param.Method, url, strings.NewReader(body))
+			if err != nil {
+				stat.ErrorCnt++
+				continue
+			}
 
 			for _, h := range param.Headers {
 				parts := strings.SplitN(h, ":", 2)
@@ -171,28 +177,23 @@ func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam) B
 				}
 			}
 
-			var body string
-			if param.Body != "" {
-				body = substitute(param.Body)
-				req.SetBodyString(body)
-
-				if req.Header.Peek("Content-Type") == nil {
+			if len(body) > 0 {
+				if req.Header.Get("Content-Type") == "" {
 					req.Header.Set("Content-Type", "application/json")
 				}
-
 				stat.BodyReqSize += len(body)
 			}
 
-			resp := fasthttp.AcquireResponse()
-
 			if param.Verbose {
-				fmt.Printf("*   Trying %s...\n", req.URI().Host())
-				fmt.Printf("* Connected to %s (%s)\n", req.URI().Host(), req.URI().Host())
-				fmt.Printf("> %s %s HTTP/1.1\n", req.Header.Method(), req.URI().PathOriginal())
-				fmt.Printf("> Host: %s\n", req.URI().Host())
-				req.Header.VisitAll(func(k, v []byte) {
-					fmt.Printf("> %s: %s\n", k, v)
-				})
+				fmt.Printf("*   Trying %s...\n", req.URL.Host)
+				fmt.Printf("* Connected to %s (%s)\n", req.URL.Host, req.URL.Host)
+				fmt.Printf("> %s %s HTTP/%s\n", req.Method, req.URL.Path, normalizeHTTPVersion(param.HTTPVersion))
+				fmt.Printf("> Host: %s\n", req.URL.Host)
+				for k, vs := range req.Header {
+					for _, v := range vs {
+						fmt.Printf("> %s: %s\n", k, v)
+					}
+				}
 				if len(body) > 0 {
 					fmt.Printf(">\n> %s\n", body)
 				}
@@ -200,30 +201,39 @@ func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam) B
 			}
 
 			startReq := time.Now()
-			err := client.Do(req, resp)
+			resp, err := client.Do(req)
 			elapsedReq := time.Since(startReq)
 
-			code := resp.StatusCode()
-			bodyRespSize := resp.Header.ContentLength()
+			var code int
+			var bodyRespSize int
+
+			if resp != nil {
+				code = resp.StatusCode
+				respBody, readErr := io.ReadAll(resp.Body)
+				_ = resp.Body.Close()
+				if readErr == nil {
+					bodyRespSize = len(respBody)
+				}
+			}
 
 			if param.Verbose {
-				statusLine := fmt.Sprintf("< HTTP/1.1 %d %s", code, fasthttp.StatusMessage(code))
+				statusLine := fmt.Sprintf("< HTTP/%s %d", normalizeHTTPVersion(respProto(resp)), code)
 				fmt.Println(statusLine)
-				resp.Header.VisitAll(func(k, v []byte) {
-					fmt.Printf("< %s: %s\n", k, v)
-				})
+				if resp != nil {
+					for k, vs := range resp.Header {
+						for _, v := range vs {
+							fmt.Printf("< %s: %s\n", k, v)
+						}
+					}
+				}
 				fmt.Printf("< \n")
 
-				body := resp.Body()
-				if len(body) > 0 {
-					fmt.Println(string(body))
+				if resp != nil && bodyRespSize > 0 {
+					fmt.Printf("* Response body length: %d bytes\n", bodyRespSize)
 				}
 
 				fmt.Printf("* Connection closed | time: %v | bodyRespSize: %d bytes\n\n", elapsedReq, bodyRespSize)
 			}
-
-			fasthttp.ReleaseRequest(req)
-			fasthttp.ReleaseResponse(resp)
 
 			stat.Time += elapsedReq
 			stat.Histogram.RecordValue(elapsedReq.Nanoseconds())
@@ -242,4 +252,17 @@ func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam) B
 			}
 		}
 	}
+}
+
+func respProto(resp *http.Response) string {
+	if resp == nil {
+		return "1.1"
+	}
+	if resp.ProtoMajor == 0 {
+		return "1.1"
+	}
+	if resp.ProtoMinor == 0 {
+		return fmt.Sprintf("%d", resp.ProtoMajor)
+	}
+	return fmt.Sprintf("%d.%d", resp.ProtoMajor, resp.ProtoMinor)
 }

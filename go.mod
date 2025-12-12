@@ -5,15 +5,16 @@ go 1.24.0
 toolchain go1.24.5
 
 require (
-	github.com/HdrHistogram/hdrhistogram-go v1.2.0
-	github.com/dustin/go-humanize v1.0.1
-	github.com/shirou/gopsutil/v3 v3.24.5
-	github.com/urfave/cli/v2 v2.27.7
-	github.com/valyala/fasthttp v1.65.0
+github.com/HdrHistogram/hdrhistogram-go v1.2.0
+github.com/dustin/go-humanize v1.0.1
+github.com/lucas-clemente/quic-go v0.48.2
+github.com/shirou/gopsutil/v3 v3.24.5
+github.com/urfave/cli/v2 v2.27.7
+golang.org/x/net v0.43.0
 )
 
 require (
-	github.com/andybalholm/brotli v1.2.0 // indirect
+github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
