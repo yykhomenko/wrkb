@@ -1,75 +1,123 @@
 # wrkb
 
-WRK benchmark load HTTP requests and pick stats.
-After benchmarks done it prints bench results.
+`wrkb` is a lightweight CLI tool for HTTP load testing. It fans out concurrent workers, measures latency with HDR histograms, and reports request/response statistics together with optional process metrics for the target service.
 
-```
-go run ./cmd/... -p=main http://127.0.0.1/
+## Features
+- 🚀 Sequential connection sweeps (e.g., `1,2,4,8…`) with per-connection RPS limits
+- 📊 Rich latency breakdown (min, p50, p90, p99, p999, max) backed by HDR histograms
+- 🔄 Dynamic payload/URL placeholders for randomized test data
+- 🧠 Intelligent “best result” pick based on RPS vs. latency ratio
+- 🖥️ Optional target-process monitoring (CPU, threads, RSS, binary size) via `-p/--proc`
 
-or
+## Installation
+### Prerequisites
+- Go **1.24+** (toolchain declared in `go.mod`)
 
-go build ./cmd/...
-./wrkb -p=pico-http  http://127.0.0.1:8082/
-```
+### From source
+```bash
+# Build
+make build
+# or
+go build ./cmd/wrkb
 
-Also possible use RANDI64 function it replaces to random number
-
-```
-./wrkb -p=hashes http://127.0.0.1:8082/hashes/__RANDI64_380670000001_380679999999__
-
-./wrkb -p=hashes http://127.0.0.1:8082/hashes/380670000001
-```
-
-```
-./wrkb -p=hashes http://127.0.0.1:8082/msisdns/__RANDHEX_32__
-
-./wrkb -p=hashes http://127.0.0.1:8082/msisdns/4a9f2c87b0d3e1f4ac56e7c2d18a9b77
-
-./wrkb -p=hashes -c=1,2,4,8,16 http://127.0.0.1:8082/msisdns/4a9f2c87b0d3e1f4ac56e7c2d18a9b77
+# Run without installing
+go run ./cmd/wrkb --help
 ```
 
-```
-./wrkb -p=hashes http://127.0.0.1:8082/msisdns/__RANDSTR_lettersdigits_16__
-
-./wrkb -p=hashes http://127.0.0.1:8082/msisdns/a8F3xY09LmZ2QcWp
-```
-
-```
-./wrkb -p=mars http://localhost:8080/messages\?from\=__RANDI64_700_777__\&to\=__RANDI64_380670000001_380670099999__\&text\=__RANDSTR_lettersdigits_16__
-./wrkb -p=mars http://localhost:8080/messages?from=752&to=380670058287&text=uW7EmXejS9tvtkeo
-
-
-./wrkb -p=pico -c=1 -rps=10 -t=1 -d='{"msisdn": __RANDI64_380670000001_380679999999__}' -v http://127.0.0.1:8088/t
+### Install into `$GOBIN`
+```bash
+go install ./cmd/wrkb
 ```
 
-Example. 'pico-http' is target local process name. Optional.
+## Usage
+```bash
+wrkb -p <process-name> [options] <url>
+```
+
+Key options:
+
+| Flag | Description | Default |
+| --- | --- | --- |
+| `-p, --proc` | **Required.** Process name to monitor (e.g., `pico-http`). | — |
+| `-c` | Comma-separated connection counts to sweep. | `1,2,4,8,16,32,64,128,256` |
+| `-t, --time` | Test duration in seconds. | `1` |
+| `-X, --method` | HTTP method. | `GET` |
+| `-d, --data` | Request body for write methods. | — |
+| `-H, --header` | Repeatable custom header(s), e.g., `-H "Authorization: Bearer …"`. | — |
+| `--rps, --rate` | Per-connection RPS cap (`0` = unlimited). | `0` |
+| `-v, --verbose` | Print per-request details. | `false` |
+
+The URL can include dynamic placeholders (see below).
+
+## Dynamic placeholders
+Use templated tokens to inject randomness before each request:
+
+- `__RANDI64_<low>_<high>__` — random int64 within the inclusive range
+- `__RANDHEX_<len>__` — random hex string of length `<len>`
+- `__RANDSTR_letters_<len>__` — random alphabetic string
+- `__RANDSTR_digits_<len>__` — random numeric string
+- `__RANDSTR_lettersdigits_<len>__` — random alphanumeric string
+
+Examples:
+```bash
+# Phone range
+wrkb -p hashes http://127.0.0.1:8082/hashes/__RANDI64_380670000001_380679999999__
+
+# Hex identifier
+wrkb -p hashes http://127.0.0.1:8082/msisdns/__RANDHEX_32__
+
+# Alphanumeric payload
+wrkb -p pico -c=1 -rps=10 -t=1 \
+  -d '{"msisdn": "__RANDI64_380670000001_380679999999__"}' \
+  -H 'Content-Type: application/json' \
+  http://127.0.0.1:8088/t
+```
+
+## Quick start
+```bash
+# Benchmark a local service by process name
+wrkb -p pico-http http://127.0.0.1:8082/
+
+# POST with custom headers across multiple connection counts
+wrkb -p api -X POST -c=1,2,4,8 \
+  -d '{"id":"__RANDHEX_16__"}' \
+  -H 'Content-Type: application/json' \
+  http://localhost:8080/items
+```
+
+## Reading the output
+A full run prints a table per connection count plus summary stats:
 
 ```
-Process "pico-http" starts with:
-cpu: 0.005858
-threads: 2
-mem: 2.4 MB
-disk: 220 kB
+┌────┬────────┬────────────┬────────┬────────┬────────┬─────────┬─────────┬─────┬────┬────────┐
+│conn│     rps│     latency│    good│     bad│     err│ body req│ body resp│  cpu│ thr│    mem│
+├────┼────────┼────────────┼────────┼────────┼────────┼─────────┼─────────┼─────┼────┼────────┤
+│   1│  59851│    16.708µs│   58958│       0│       0│   766 kB│    3.2 MB│ 0.29│   2│ 3.2 MB│
+│  64│ 290635│   220.206µs│  290168│       0│       0│   3.8 MB│    9.1 MB│ 0.83│   2│ 9.1 MB│
+└────┴────────┴────────────┴────────┴────────┴────────┴─────────┴─────────┴─────┴────┴────────┘
 
-┌────┬──────┬──────────┬────────┬────────┬────────┬───────┬─────┬────┬───────┐
-│conn│   rps│   latency│    good|     bad|     err|   body|  cpu│ thr│    mem│
-├────┼──────┼──────────┼────────┼────────┼────────┼───────┼─────┼────┼───────┤
-│   1│ 59851│  16.708µs│   58958|       0|       0| 766 kB| 0.29│   2│ 3.2 MB│
-│   2│111888│  17.874µs│  110398|       0|       0| 1.4 MB| 0.52│   2│ 4.8 MB│
-│   3│161303│  18.598µs│  159314|       0|       0| 2.1 MB| 0.58│   2│ 6.7 MB│
-│   4│193874│  20.631µs│  191800|       0|       0| 2.5 MB| 0.61│   2│ 7.1 MB│
-│   5│207909│  24.048µs│  205992|       0|       0| 2.7 MB| 0.62│   2│ 7.2 MB│
-│   6│226364│  26.505µs│  224549|       0|       0| 2.9 MB| 0.67│   2│ 7.3 MB│
-│   7│243862│  28.704µs│  241695|       0|       0| 3.1 MB| 0.73│   2│ 7.4 MB│
-│   8│245731│  32.555µs│  243813|       0|       0| 3.2 MB| 0.75│   2│ 7.5 MB│
-│   9│261022│  34.479µs│  259208|       0|       0| 3.4 MB| 0.77│   2│ 7.6 MB│
-│  10│268466│  37.248µs│  267007|       0|       0| 3.5 MB| 0.80│   2│ 7.7 MB│
-│  12│272936│  43.966µs│  271665|       0|       0| 3.5 MB| 0.82│   2│ 7.8 MB│
-│  16│270067│  59.244µs│  268846|       0|       0| 3.5 MB| 0.81│   2│ 8.0 MB│
-│  32│289638│ 110.482µs│  289021|       0|       0| 3.8 MB| 0.84│   2│ 8.3 MB│
-│  64│290635│ 220.206µs│  290168|       0|       0| 3.8 MB| 0.83│   2│ 9.1 MB│
-│ 128│280228│  456.77µs│  280125|       0|       0| 3.6 MB| 0.84│   2│  11 MB│
-└────┴──────┴──────────┴────────┴────────┴────────┴───────┴─────┴────┴───────┘
-
-Best: 12, rps: 272936, latency: 43.966µs
+✨ Best result: 64 connections | 290635 RPS | 220.206µs latency
+min=13.3µs
+p50=23.1µs
+p90=31.2µs
+p99=48.5µs
+p999=212.0µs
+max=910.4µs
 ```
+
+- **rps** — responses per second during the test window.
+- **latency** — mean latency; min/p50/p90/p99/p999/max follow in the footer.
+- **good / bad / err** — HTTP status grouping (2xx/3xx, 4xx/5xx, transport errors).
+- **body req/resp** — cumulative bytes sent/received.
+- **cpu/thr/mem** — delta CPU time, thread count, and RSS of the monitored process.
+
+## Benchmark strategy
+`wrkb` executes connection counts sequentially using the same target and method. At the end, it selects a “best” configuration by balancing throughput (RPS) against observed latency using a weighted score (`RPS / log10(latency_ns)`).
+
+## Development
+- Run tests: `go test ./...`
+- Format: `go fmt ./...`
+- Linting/other tooling: add your favorite tools; none are mandated by the project.
+
+## License
+MIT
