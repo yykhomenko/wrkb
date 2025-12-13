@@ -61,7 +61,7 @@ func main() {
 			&cli.Float64Flag{
 				Name:    "rps",
 				Aliases: []string{"rate"},
-				Usage:   "Limit requests per second per connection (0 = unlimited)",
+				Usage:   "Limit total requests per second across all connections (0 = unlimited)",
 				Value:   0,
 			},
 			&cli.StringFlag{

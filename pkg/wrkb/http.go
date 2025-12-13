@@ -69,20 +69,24 @@ func (s BenchStat) Add(other BenchStat) BenchStat {
 }
 
 func (r BenchResult) CalcStat() BenchResult {
-	total := r.Stat.GoodCnt + r.Stat.BadCnt
-	if total == 0 {
+	totalRequests := r.Stat.GoodCnt + r.Stat.BadCnt + r.Stat.ErrorCnt
+	if totalRequests == 0 {
 		return r
 	}
 
-	r.RPS = int(float64(total) / r.Param.Duration.Seconds())
-	r.Latency = time.Duration(r.Stat.Time.Nanoseconds() / int64(total))
+	r.RPS = int(float64(totalRequests) / r.Param.Duration.Seconds())
 
-	r.Min = time.Duration(r.Stat.Histogram.Min()) * time.Nanosecond
-	r.P50 = time.Duration(r.Stat.Histogram.ValueAtQuantile(50.0)) * time.Nanosecond
-	r.P90 = time.Duration(r.Stat.Histogram.ValueAtQuantile(90.0)) * time.Nanosecond
-	r.P99 = time.Duration(r.Stat.Histogram.ValueAtQuantile(99.0)) * time.Nanosecond
-	r.P999 = time.Duration(r.Stat.Histogram.ValueAtQuantile(99.9)) * time.Nanosecond
-	r.Max = time.Duration(r.Stat.Histogram.Max()) * time.Nanosecond
+	measuredCount := int64(r.Stat.Histogram.TotalCount())
+	if measuredCount > 0 {
+		r.Latency = time.Duration(r.Stat.Time.Nanoseconds() / measuredCount)
+
+		r.Min = time.Duration(r.Stat.Histogram.Min()) * time.Nanosecond
+		r.P50 = time.Duration(r.Stat.Histogram.ValueAtQuantile(50.0)) * time.Nanosecond
+		r.P90 = time.Duration(r.Stat.Histogram.ValueAtQuantile(90.0)) * time.Nanosecond
+		r.P99 = time.Duration(r.Stat.Histogram.ValueAtQuantile(99.0)) * time.Nanosecond
+		r.P999 = time.Duration(r.Stat.Histogram.ValueAtQuantile(99.9)) * time.Nanosecond
+		r.Max = time.Duration(r.Stat.Histogram.Max()) * time.Nanosecond
+	}
 
 	return r
 }
@@ -92,6 +96,23 @@ func BenchHTTP(param BenchParam) BenchResult {
 	ctx, cancel := context.WithTimeout(context.Background(), param.Duration)
 	defer cancel()
 
+	var limiter <-chan time.Time
+	var stopLimiter func()
+	if param.RPSLimit > 0 {
+		interval := time.Duration(float64(time.Second) / param.RPSLimit)
+		if interval <= 0 {
+			interval = time.Nanosecond
+		}
+
+		ticker := time.NewTicker(interval)
+		limiter = ticker.C
+		stopLimiter = ticker.Stop
+	}
+
+	if stopLimiter != nil {
+		defer stopLimiter()
+	}
+
 	stats := make(chan BenchStat, param.ConnNum)
 	wg := sync.WaitGroup{}
 
@@ -99,7 +120,7 @@ func BenchHTTP(param BenchParam) BenchResult {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			stat := runWorker(ctx, client, param)
+			stat := runWorker(ctx, client, param, limiter)
 			stats <- stat
 		}()
 	}
@@ -134,16 +155,8 @@ func newClient(param BenchParam) *fasthttp.Client {
 	}
 }
 
-func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam) BenchStat {
+func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam, limiter <-chan time.Time) BenchStat {
 	stat := newBenchStat()
-
-	var limiter <-chan time.Time
-	if param.RPSLimit > 0 {
-		interval := time.Second / time.Duration(param.RPSLimit)
-		ticker := time.NewTicker(interval)
-		defer ticker.Stop()
-		limiter = ticker.C
-	}
 
 	for {
 		select {
@@ -203,8 +216,20 @@ func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam) B
 			err := client.Do(req, resp)
 			elapsedReq := time.Since(startReq)
 
+			if err != nil {
+				stat.ErrorCnt++
+				if param.Verbose {
+					fmt.Fprintf(os.Stderr, "ERR: %v\n", err)
+				}
+
+				fasthttp.ReleaseRequest(req)
+				fasthttp.ReleaseResponse(resp)
+				continue
+			}
+
 			code := resp.StatusCode()
-			bodyRespSize := resp.Header.ContentLength()
+			bodyBytes := resp.Body()
+			bodyRespSize := len(bodyBytes)
 
 			if param.Verbose {
 				statusLine := fmt.Sprintf("< HTTP/1.1 %d %s", code, fasthttp.StatusMessage(code))
@@ -214,32 +239,28 @@ func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam) B
 				})
 				fmt.Printf("< \n")
 
-				body := resp.Body()
-				if len(body) > 0 {
-					fmt.Println(string(body))
+				if len(bodyBytes) > 0 {
+					fmt.Println(string(bodyBytes))
 				}
-
-				fmt.Printf("* Connection closed | time: %v | bodyRespSize: %d bytes\n\n", elapsedReq, bodyRespSize)
 			}
 
-			fasthttp.ReleaseRequest(req)
-			fasthttp.ReleaseResponse(resp)
+			if param.Verbose {
+				fmt.Printf("* Connection closed | time: %v | bodyRespSize: %d bytes\n\n", elapsedReq, bodyRespSize)
+			}
 
 			stat.Time += elapsedReq
 			stat.Histogram.RecordValue(elapsedReq.Nanoseconds())
 
 			switch {
-			case err != nil:
-				stat.ErrorCnt++
-				if param.Verbose {
-					fmt.Fprintf(os.Stderr, "ERR: %v\n", err)
-				}
 			case code >= 200 && code < 400:
 				stat.GoodCnt++
 				stat.BodyRespSize += bodyRespSize
 			default:
 				stat.BadCnt++
 			}
+
+			fasthttp.ReleaseRequest(req)
+			fasthttp.ReleaseResponse(resp)
 		}
 	}
 }
