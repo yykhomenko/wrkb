@@ -64,8 +64,12 @@ func Start(params []BenchParam) {
 func runSingleBenchmark(p BenchParam) BenchResult {
 	var psBefore *PsStat
 	if p.ProcName != "" {
-		ps, _ := Ps(p.ProcName)
-		psBefore = ps
+		ps, err := Ps(p.ProcName)
+		if err != nil {
+			log.Printf("failed to read process stats before benchmark: %v", err)
+		} else {
+			psBefore = ps
+		}
 	}
 
 	start := time.Now()
@@ -76,11 +80,17 @@ func runSingleBenchmark(p BenchParam) BenchResult {
 	var thr int
 	var mem int64
 
-	if p.ProcName != "" && psBefore != nil {
-		psAfter, _ := Ps(p.ProcName)
-		cpu = (psAfter.CPUTime - psBefore.CPUTime) / elapsed.Seconds()
-		thr = psAfter.CPUNumThreads
-		mem = int64(psAfter.MemRSS)
+	if p.ProcName != "" {
+		psAfter, err := Ps(p.ProcName)
+		if err != nil {
+			log.Printf("failed to read process stats after benchmark: %v", err)
+		} else {
+			if psBefore != nil {
+				cpu = (psAfter.CPUTime - psBefore.CPUTime) / elapsed.Seconds()
+			}
+			thr = psAfter.CPUNumThreads
+			mem = int64(psAfter.MemRSS)
+		}
 	}
 
 	printRow(result, cpu, thr, mem)
