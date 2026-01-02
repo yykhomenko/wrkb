@@ -24,12 +24,23 @@ clean: ## Clean project
 bench_pico:
 	go run ./... \
 		-p=main \
-		-c=1 \
 	  -t=1 \
 	  -X=POST \
 	  -H 'Authorization: Bearer eyJ4NXQi' \
 	  -d='{"msisdn": __RANDI64_380670000001_380679999999__}' \
 	  http://127.0.0.1:8088/
+
+bench_hashes:
+	go run ./... \
+		-p=hashes \
+	  -t=1 \
+	  http://127.0.0.1:8082/hashes/__RANDI64_380670000001_380679999999__
+
+bench_hashes_kube:
+	go run ./... \
+		-p=hashes \
+	  -t=1 \
+	  http://127.0.0.1:8080/hashes/__RANDI64_380670000001_380679999999__
 
 help:
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / \

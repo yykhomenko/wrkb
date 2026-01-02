@@ -34,7 +34,7 @@ func main() {
 				Name:     "p",
 				Aliases:  []string{"proc"},
 				Usage:    "Process name to benchmark (e.g. hashes, json, upload)",
-				Required: true,
+				Required: false,
 			},
 			&cli.StringFlag{
 				Name:  "c",
