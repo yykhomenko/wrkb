@@ -41,6 +41,7 @@ Key options:
 | `-p, --proc` | **Required.** Process name to monitor (e.g., `pico-http`). | — |
 | `-c` | Comma-separated connection counts to sweep. | `1,2,4,8,16,32,64,128,256` |
 | `-t, --time` | Test duration in seconds. | `1` |
+| `-n, --requests` | Total number of requests to send (`0` = unlimited). | `0` |
 | `-X, --method` | HTTP method. | `GET` |
 | `-d, --data` | Request body for write methods. | — |
 | `-H, --header` | Repeatable custom header(s), e.g., `-H "Authorization: Bearer …"`. | — |

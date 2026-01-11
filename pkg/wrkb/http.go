@@ -3,8 +3,10 @@ package wrkb
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/HdrHistogram/hdrhistogram-go"
@@ -19,6 +21,7 @@ type BenchParam struct {
 	Duration time.Duration
 	Verbose  bool
 	RPSLimit float64
+	MaxReqs  int
 	Body     string
 	Headers  []string
 }
@@ -50,16 +53,17 @@ func (s BenchStat) Add(other BenchStat) BenchStat {
 }
 
 type BenchResult struct {
-	Param   BenchParam
-	Stat    BenchStat
-	RPS     int
-	Latency time.Duration
-	Min     time.Duration
-	P50     time.Duration
-	P90     time.Duration
-	P99     time.Duration
-	P999    time.Duration
-	Max     time.Duration
+	Param          BenchParam
+	Stat           BenchStat
+	ActualDuration time.Duration
+	RPS            int
+	Latency        time.Duration
+	Min            time.Duration
+	P50            time.Duration
+	P90            time.Duration
+	P99            time.Duration
+	P999           time.Duration
+	Max            time.Duration
 }
 
 func (r BenchResult) CalcStat() BenchResult {
@@ -68,7 +72,13 @@ func (r BenchResult) CalcStat() BenchResult {
 		return r
 	}
 
-	r.RPS = int(float64(totalRequests) / r.Param.Duration.Seconds())
+	duration := r.Param.Duration
+	if r.ActualDuration > 0 {
+		duration = r.ActualDuration
+	}
+	if duration > 0 {
+		r.RPS = int(float64(totalRequests) / duration.Seconds())
+	}
 
 	measuredCount := int64(r.Stat.Histogram.TotalCount())
 	if measuredCount > 0 {
@@ -87,8 +97,15 @@ func (r BenchResult) CalcStat() BenchResult {
 
 func BenchHTTP(param BenchParam) BenchResult {
 
-	ctx, cancel := context.WithTimeout(context.Background(), param.Duration)
-	defer cancel()
+	start := time.Now()
+	ctxTimeout, cancelTimeout := context.WithTimeout(context.Background(), param.Duration)
+	defer cancelTimeout()
+
+	ctx := ctxTimeout
+	var cancelAll context.CancelFunc
+	if param.MaxReqs > 0 {
+		ctx, cancelAll = context.WithCancel(ctxTimeout)
+	}
 
 	client := &fasthttp.Client{
 		ReadTimeout:                   1 * time.Second,
@@ -121,12 +138,14 @@ func BenchHTTP(param BenchParam) BenchResult {
 
 	stats := make(chan BenchStat, param.ConnNum)
 	wg := sync.WaitGroup{}
+	var reqCount int64
+	maxReqs := int64(param.MaxReqs)
 
 	for i := 0; i < param.ConnNum; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			stat := runWorker(ctx, client, param, limiter)
+			stat := runWorker(ctx, client, param, limiter, &reqCount, maxReqs, cancelAll)
 			stats <- stat
 		}()
 	}
@@ -142,12 +161,13 @@ func BenchHTTP(param BenchParam) BenchResult {
 	}
 
 	return (BenchResult{
-		Param: param,
-		Stat:  final,
+		Param:          param,
+		Stat:           final,
+		ActualDuration: time.Since(start),
 	}).CalcStat()
 }
 
-func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam, limiter <-chan time.Time) BenchStat {
+func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam, limiter <-chan time.Time, reqCount *int64, maxReqs int64, cancelAll context.CancelFunc) BenchStat {
 
 	stat := BenchStat{Histogram: hdrhistogram.New(1_000, 10_000_000_000, 3)}
 
@@ -160,6 +180,16 @@ func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam, l
 				select {
 				case <-limiter:
 				case <-ctx.Done():
+					return stat
+				}
+			}
+
+			if maxReqs > 0 {
+				next := atomic.AddInt64(reqCount, 1)
+				if next > maxReqs {
+					if cancelAll != nil {
+						cancelAll()
+					}
 					return stat
 				}
 			}
@@ -189,8 +219,6 @@ func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam, l
 				stat.BodyReqSize += len(body)
 			}
 
-			resp := fasthttp.AcquireResponse()
-
 			if param.Verbose {
 				fmt.Printf("*   Trying %s...\n", req.URI().Host())
 				fmt.Printf("* Connected to %s (%s)\n", req.URI().Host(), req.URI().Host())
@@ -205,6 +233,7 @@ func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam, l
 				fmt.Printf("> \n* Request completely sent off\n")
 			}
 
+			resp := fasthttp.AcquireResponse()
 			startReq := time.Now()
 			err := client.Do(req, resp)
 			elapsedReq := time.Since(startReq)
@@ -235,9 +264,6 @@ func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam, l
 				if len(bodyBytes) > 0 {
 					fmt.Println(string(bodyBytes))
 				}
-			}
-
-			if param.Verbose {
 				fmt.Printf("* Connection closed | time: %v | bodyRespSize: %d bytes\n\n", elapsedReq, bodyRespSize)
 			}
 

@@ -48,6 +48,12 @@ func main() {
 				Usage:   "Duration of test in seconds",
 				Value:   1,
 			},
+			&cli.IntFlag{
+				Name:    "n",
+				Aliases: []string{"requests"},
+				Usage:   "Total number of requests to send (0 = unlimited)",
+				Value:   0,
+			},
 			&cli.Float64Flag{
 				Name:    "rps",
 				Aliases: []string{"rate"},
@@ -88,11 +94,12 @@ func main() {
 			method := strings.ToUpper(c.String("X"))
 			verbose := c.Bool("v")
 			rpsLimit := c.Float64("rps")
+			maxReqs := c.Int("n")
 			body := c.String("d")
 			headers := c.StringSlice("H")
 
 			fmt.Printf("\n⚙️  Preparing benchmark: '%s' [%s] for %s\n", procName, method, url)
-			fmt.Printf("   Connections: %v | Duration: %v | Verbose: %v\n", conns, duration, verbose)
+			fmt.Printf("   Connections: %v | Duration: %v | Requests: %d | Verbose: %v\n", conns, duration, maxReqs, verbose)
 
 			var params []wrkb.BenchParam
 			for _, connNum := range conns {
@@ -104,6 +111,7 @@ func main() {
 					Duration: duration,
 					Verbose:  verbose,
 					RPSLimit: rpsLimit,
+					MaxReqs:  maxReqs,
 					Body:     body,
 					Headers:  headers,
 				})
