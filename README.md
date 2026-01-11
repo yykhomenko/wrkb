@@ -36,17 +36,17 @@ wrkb -p <process-name> [options] <url>
 
 Key options:
 
-| Flag | Description | Default |
-| --- | --- | --- |
-| `-p, --proc` | **Required.** Process name to monitor (e.g., `pico-http`). | — |
-| `-c` | Comma-separated connection counts to sweep. | `1,2,4,8,16,32,64,128,256` |
-| `-t, --time` | Test duration in seconds. | `1` |
+| Flag             | Description | Default |
+|------------------| --- | --- |
+| `-p, --proc`     | **Required.** Process name to monitor (e.g., `pico-http`). | — |
+| `-c, --conns`    | Comma-separated connection counts to sweep. | `1,2,4,8,16,32,64,128,256` |
+| `-t, --time`     | Test duration in seconds. | `1` |
 | `-n, --requests` | Total number of requests to send (`0` = unlimited). | `0` |
-| `-X, --method` | HTTP method. | `GET` |
-| `-d, --data` | Request body for write methods. | — |
-| `-H, --header` | Repeatable custom header(s), e.g., `-H "Authorization: Bearer …"`. | — |
-| `--rps, --rate` | Per-connection RPS cap (`0` = unlimited). | `0` |
-| `-v, --verbose` | Print per-request details. | `false` |
+| `-X, --method`   | HTTP method. | `GET` |
+| `-d, --data`     | Request body for write methods. | — |
+| `-H, --header`   | Repeatable custom header(s), e.g., `-H "Authorization: Bearer …"`. | — |
+| `--rps, --rate`  | Per-connection RPS cap (`0` = unlimited). | `0` |
+| `-v, --verbose`  | Print per-request details. | `false` |
 
 The URL can include dynamic placeholders (see below).
 
