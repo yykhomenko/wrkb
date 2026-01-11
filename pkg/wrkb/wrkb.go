@@ -104,10 +104,6 @@ func printHeader() {
 	fmt.Printf("%s├────┼────────┼────────────┼────────┼────────┼────────┼─────────┼─────────┼─────┼────┼────────┤%s\n", gray, reset)
 }
 
-func printFooter() {
-	fmt.Printf("%s└────┴────────┴────────────┴────────┴────────┴────────┴─────────┴─────────┴─────┴────┴────────┘%s\n", gray, reset)
-}
-
 func printRow(result BenchResult, cpu float64, threads int, memRSS int64) {
 	bodyReqSize := humanize.Bytes(uint64(result.Stat.BodyReqSize))
 	bodyRespSize := humanize.Bytes(uint64(result.Stat.BodyRespSize))
@@ -122,6 +118,10 @@ func printRow(result BenchResult, cpu float64, threads int, memRSS int64) {
 		threads,
 		humanize.Bytes(uint64(memRSS)),
 	)
+}
+
+func printFooter() {
+	fmt.Printf("%s└────┴────────┴────────────┴────────┴────────┴────────┴─────────┴─────────┴─────┴────┴────────┘%s\n", gray, reset)
 }
 
 func randomStartIcon() string {
