@@ -117,7 +117,6 @@ max=910.4µs
 ## Development
 - Run tests: `go test ./...`
 - Format: `go fmt ./...`
-- Linting/other tooling: add your favorite tools; none are mandated by the project.
 
 ## License
 MIT

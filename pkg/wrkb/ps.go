@@ -17,6 +17,7 @@ type PsStat struct {
 }
 
 func Ps(procName string) (stat *PsStat, err error) {
+
 	ps, err := process.Processes()
 	if err != nil {
 		return nil, err

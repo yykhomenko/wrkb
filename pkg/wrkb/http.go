@@ -32,24 +32,6 @@ type BenchStat struct {
 	Histogram                 *hdrhistogram.Histogram
 }
 
-type BenchResult struct {
-	Param   BenchParam
-	Stat    BenchStat
-	RPS     int
-	Latency time.Duration
-	Min     time.Duration
-	P50     time.Duration
-	P90     time.Duration
-	P99     time.Duration
-	P999    time.Duration
-	Max     time.Duration
-}
-
-func newBenchStat() BenchStat {
-	h := hdrhistogram.New(1_000, 10_000_000_000, 3)
-	return BenchStat{Histogram: h}
-}
-
 func (s BenchStat) Add(other BenchStat) BenchStat {
 	s.GoodCnt += other.GoodCnt
 	s.BadCnt += other.BadCnt
@@ -66,6 +48,19 @@ func (s BenchStat) Add(other BenchStat) BenchStat {
 		}
 	}
 	return s
+}
+
+type BenchResult struct {
+	Param   BenchParam
+	Stat    BenchStat
+	RPS     int
+	Latency time.Duration
+	Min     time.Duration
+	P50     time.Duration
+	P90     time.Duration
+	P99     time.Duration
+	P999    time.Duration
+	Max     time.Duration
 }
 
 func (r BenchResult) CalcStat() BenchResult {
@@ -92,9 +87,21 @@ func (r BenchResult) CalcStat() BenchResult {
 }
 
 func BenchHTTP(param BenchParam) BenchResult {
-	client := newClient(param)
+
 	ctx, cancel := context.WithTimeout(context.Background(), param.Duration)
 	defer cancel()
+
+	client := &fasthttp.Client{
+		ReadTimeout:                   1 * time.Second,
+		WriteTimeout:                  1 * time.Second,
+		MaxIdleConnDuration:           1 * time.Minute,
+		DisablePathNormalizing:        true,
+		DisableHeaderNamesNormalizing: true,
+		NoDefaultUserAgentHeader:      true,
+		Dial: (&fasthttp.TCPDialer{
+			DNSCacheDuration: 1 * time.Hour,
+		}).Dial,
+	}
 
 	var limiter <-chan time.Time
 	var stopLimiter func()
@@ -141,22 +148,9 @@ func BenchHTTP(param BenchParam) BenchResult {
 	}).CalcStat()
 }
 
-func newClient(param BenchParam) *fasthttp.Client {
-	return &fasthttp.Client{
-		ReadTimeout:                   1 * time.Second,
-		WriteTimeout:                  1 * time.Second,
-		MaxIdleConnDuration:           1 * time.Minute,
-		DisablePathNormalizing:        true,
-		DisableHeaderNamesNormalizing: true,
-		NoDefaultUserAgentHeader:      true,
-		Dial: (&fasthttp.TCPDialer{
-			DNSCacheDuration: 1 * time.Hour,
-		}).Dial,
-	}
-}
-
 func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam, limiter <-chan time.Time) BenchStat {
-	stat := newBenchStat()
+
+	stat := BenchStat{Histogram: hdrhistogram.New(1_000, 10_000_000_000, 3)}
 
 	for {
 		select {

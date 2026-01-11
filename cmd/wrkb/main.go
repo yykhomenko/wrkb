@@ -33,30 +33,20 @@ func main() {
 			&cli.StringFlag{
 				Name:     "p",
 				Aliases:  []string{"proc"},
-				Usage:    "Process name to benchmark (e.g. hashes, json, upload)",
+				Usage:    "Process name to benchmark (e.g. hashes, json, upload).",
 				Required: false,
 			},
 			&cli.StringFlag{
-				Name:  "c",
-				Usage: "Comma-separated list of connections, e.g. 1,2,4,8,16",
-				Value: "1,2,4,8,16,32,64,128,256",
+				Name:    "c",
+				Aliases: []string{"conns"},
+				Usage:   "Comma-separated list of connections, e.g. 1,2,4,8,16",
+				Value:   "1,2,4,8,16,32,64,128,256",
 			},
 			&cli.IntFlag{
 				Name:    "t",
+				Aliases: []string{"time"},
 				Usage:   "Duration of test in seconds",
 				Value:   1,
-				Aliases: []string{"time"},
-			},
-			&cli.BoolFlag{
-				Name:    "v",
-				Aliases: []string{"verbose"},
-				Usage:   "Enable verbose output",
-			},
-			&cli.StringFlag{
-				Name:    "X",
-				Aliases: []string{"method"},
-				Usage:   "HTTP method (GET, POST, etc.)",
-				Value:   "GET",
 			},
 			&cli.Float64Flag{
 				Name:    "rps",
@@ -65,14 +55,25 @@ func main() {
 				Value:   0,
 			},
 			&cli.StringFlag{
-				Name:    "d",
-				Aliases: []string{"data"},
-				Usage:   "Request body to send with POST/PUT/PATCH requests (e.g. JSON string)",
+				Name:    "X",
+				Aliases: []string{"method"},
+				Usage:   "HTTP method (GET, POST, etc.)",
+				Value:   "GET",
 			},
 			&cli.StringSliceFlag{
 				Name:    "H",
 				Aliases: []string{"header"},
 				Usage:   "Custom HTTP header(s), e.g. -H 'Authorization: Bearer XXX' -H 'Content-Type: application/json'",
+			},
+			&cli.StringFlag{
+				Name:    "d",
+				Aliases: []string{"data"},
+				Usage:   "Request body to send with POST/PUT/PATCH requests (e.g. JSON string)",
+			},
+			&cli.BoolFlag{
+				Name:    "v",
+				Aliases: []string{"verbose"},
+				Usage:   "Enable verbose output",
 			},
 		},
 		Action: func(c *cli.Context) error {
