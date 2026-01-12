@@ -170,6 +170,17 @@ func BenchHTTP(param BenchParam) BenchResult {
 func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam, limiter <-chan time.Time, reqCount *int64, maxReqs int64, cancelAll context.CancelFunc) BenchStat {
 
 	stat := BenchStat{Histogram: hdrhistogram.New(1_000, 10_000_000_000, 3)}
+	hasContentTypeHeader := false
+	for _, h := range param.Headers {
+		parts := strings.SplitN(h, ":", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		if strings.EqualFold(strings.TrimSpace(parts[0]), "Content-Type") {
+			hasContentTypeHeader = true
+			break
+		}
+	}
 
 	for {
 		select {
@@ -212,7 +223,7 @@ func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam, l
 				body = substitute(param.Body)
 				req.SetBodyString(body)
 
-				if req.Header.Peek("Content-Type") == nil {
+				if !hasContentTypeHeader {
 					req.Header.Set("Content-Type", "application/json")
 				}
 

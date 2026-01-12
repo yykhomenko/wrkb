@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -15,11 +16,11 @@ func init() {
 }
 
 func substitute(s string) string {
-	if len(s) == 0 || !strings.Contains(s, "__RAND") {
+	if len(s) == 0 || (!strings.Contains(s, "__RAND") && !strings.Contains(s, "__SEQI64")) {
 		return s
 	}
 
-	subFns := [...]subFn{subRandI64, subRandHex, subRandStr}
+	subFns := [...]subFn{subRandI64, subSeqI64, subRandHex, subRandStr}
 
 	for i := range subFns {
 		s = subFns[i](s)
@@ -50,6 +51,53 @@ func subRandI64(s string) string {
 	})
 }
 
+// SEQI64 — __SEQI64_<low>_<high>__
+var reSeqI64 = regexp.MustCompile(`__SEQI64_([+-]?\d{1,19})_([+-]?\d{1,19})__`)
+
+type seqI64State struct {
+	mu   sync.Mutex
+	next map[string]int64
+}
+
+var seqI64 = &seqI64State{next: make(map[string]int64)}
+
+func (s *seqI64State) nextVal(low, high int64) int64 {
+	key := strconv.FormatInt(low, 10) + ":" + strconv.FormatInt(high, 10)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	cur, ok := s.next[key]
+	if !ok {
+		s.next[key] = low
+		return low
+	}
+
+	next := cur + 1
+	if next > high {
+		next = low
+	}
+	s.next[key] = next
+	return next
+}
+
+func subSeqI64(s string) string {
+	return reSeqI64.ReplaceAllStringFunc(s, func(match string) string {
+		m := reSeqI64.FindStringSubmatch(match)
+		if len(m) != 3 {
+			return match
+		}
+
+		low, _ := strconv.ParseInt(m[1], 10, 64)
+		high, _ := strconv.ParseInt(m[2], 10, 64)
+		if high < low {
+			low, high = high, low
+		}
+
+		val := seqI64.nextVal(low, high)
+		return strconv.FormatInt(val, 10)
+	})
+}
+
 // RANDHEX — __RANDHEX_<len>__
 var reRandHex = regexp.MustCompile(`__RANDHEX_(\d{1,3})__`)
 
@@ -72,7 +120,7 @@ func subRandHex(s string) string {
 	})
 }
 
-// 🔡 RANDSTR — __RANDSTR_<charset>_<len>__
+// RANDSTR — __RANDSTR_<charset>_<len>__
 // charset: letters, digits, lettersdigits
 var reRandStr = regexp.MustCompile(`__RANDSTR_(letters|digits|lettersdigits)_(\d{1,3})__`)
 

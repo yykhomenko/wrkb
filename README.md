@@ -54,6 +54,7 @@ The URL can include dynamic placeholders (see below).
 Use templated tokens to inject randomness before each request:
 
 - `__RANDI64_<low>_<high>__` — random int64 within the inclusive range
+- `__SEQI64_<low>_<high>__` — sequential int64 within the inclusive range (wraps)
 - `__RANDHEX_<len>__` — random hex string of length `<len>`
 - `__RANDSTR_letters_<len>__` — random alphabetic string
 - `__RANDSTR_digits_<len>__` — random numeric string

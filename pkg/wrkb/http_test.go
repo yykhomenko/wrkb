@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -78,6 +79,38 @@ func TestBenchHTTP_Scenarios(t *testing.T) {
 				tt.name, res.RPS, res.Latency,
 				res.Stat.GoodCnt, res.Stat.BadCnt, res.Stat.ErrorCnt)
 		})
+	}
+}
+
+func TestBenchHTTP_AutoContentType(t *testing.T) {
+	var total int64
+	var missing int64
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt64(&total, 1)
+		if r.Header.Get("Content-Type") == "" {
+			atomic.AddInt64(&missing, 1)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	param := BenchParam{
+		URL:      srv.URL,
+		Method:   "PUT",
+		ConnNum:  1,
+		Duration: 2 * time.Second,
+		MaxReqs:  2,
+		Body:     `{"a": 1}`,
+	}
+
+	_ = BenchHTTP(param)
+
+	if got := atomic.LoadInt64(&total); got != 2 {
+		t.Fatalf("expected 2 requests, got %d", got)
+	}
+	if got := atomic.LoadInt64(&missing); got != 0 {
+		t.Fatalf("expected Content-Type on all requests, missing on %d", got)
 	}
 }
 

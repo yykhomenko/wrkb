@@ -8,6 +8,12 @@ import (
 	"testing"
 )
 
+func resetSeqI64() {
+	seqI64.mu.Lock()
+	seqI64.next = make(map[string]int64)
+	seqI64.mu.Unlock()
+}
+
 func TestSubRandI64_Range(t *testing.T) {
 	input := "__RANDI64_10_20__"
 
@@ -20,6 +26,28 @@ func TestSubRandI64_Range(t *testing.T) {
 		if n < 10 || n > 20 {
 			t.Errorf("value %d out of range 10–20", n)
 		}
+	}
+}
+
+func TestSubSeqI64_SequenceAndWrap(t *testing.T) {
+	resetSeqI64()
+	input := "__SEQI64_3_5__"
+	expected := []string{"3", "4", "5", "3", "4"}
+
+	for i, want := range expected {
+		out := subSeqI64(input)
+		if out != want {
+			t.Fatalf("step %d: expected %q, got %q", i, want, out)
+		}
+	}
+}
+
+func TestSubSeqI64_MultipleInString(t *testing.T) {
+	resetSeqI64()
+	input := "__SEQI64_1_2__ __SEQI64_1_2__ __SEQI64_1_2__"
+	out := subSeqI64(input)
+	if out != "1 2 1" {
+		t.Fatalf("expected sequence in string, got %q", out)
 	}
 }
 
@@ -63,17 +91,15 @@ func TestSubRandStr_Charsets(t *testing.T) {
 }
 
 func TestSubstitute_MultiplePatterns(t *testing.T) {
-	input := "http://localhost:8080/messages?from=__RANDI64_700_777__&text=__RANDSTR_lettersdigits_8__&token=__RANDHEX_12__"
+	input := "http://localhost:8080/messages?from=__RANDI64_700_777__&seq=__SEQI64_1_3__&text=__RANDSTR_lettersdigits_8__&token=__RANDHEX_12__"
 	out := substitute(input)
 
-	// перевіряємо, що всі шаблони зникли
-	for _, pattern := range []string{"__RANDI64", "__RANDSTR", "__RANDHEX"} {
+	for _, pattern := range []string{"__RANDI64", "__SEQI64", "__RANDSTR", "__RANDHEX"} {
 		if strings.Contains(out, pattern) {
 			t.Errorf("%s not substituted in %q", pattern, out)
 		}
 	}
 
-	// базова валідація параметрів
 	if !strings.Contains(out, "from=") || !strings.Contains(out, "text=") || !strings.Contains(out, "token=") {
 		t.Fatalf("some parameters missing in output: %q", out)
 	}

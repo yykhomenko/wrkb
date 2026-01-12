@@ -23,25 +23,37 @@ clean: ## Clean project
 
 bench_pico:
 	go run ./... \
+		-v \
 		-p=main \
 	  -t=1 \
-	  -n=100000 \
+	  -n=10000 \
 	  -X=POST \
 	  -H 'Authorization: Bearer eyJ4NXQi' \
-	  -d='{"msisdn": __RANDI64_380670000001_380679999999__}' \
+	  -d='{"msisdn": __RANDI64_380670000000_380679999999__}' \
 	  http://127.0.0.1:8088/
 
 bench_hashes:
 	go run ./... \
 		-p=hashes \
 	  -t=1 \
-	  http://127.0.0.1:8082/hashes/__RANDI64_380670000001_380679999999__
+	  http://127.0.0.1:8082/hashes/__RANDI64_380670000000_380679999999__
 
 bench_hashes_kube:
 	go run ./... \
 		-p=hashes \
 	  -t=1 \
-	  http://127.0.0.1:8080/hashes/__RANDI64_380670000001_380679999999__
+	  http://127.0.0.1:8080/hashes/__RANDI64_380670000000_380679999999__
+
+bench_sis_update:
+	go run ./... \
+		-p=main \
+		-t=10 \
+	  -c=12 \
+	  -n=100000 \
+	  -X=PUT \
+	  -H 'Authorization: Bearer eyJ4NXQi' \
+	  -d='{"billing_type": __RANDI64_0_2__, "language_type": __RANDI64_0_2__, "operator_type": __RANDI64_0_2__}' \
+	  http://127.0.0.1:9001/subscribers/__SEQI64_380500000000_380509999999__
 
 help:
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / \
