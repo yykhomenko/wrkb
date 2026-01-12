@@ -59,8 +59,6 @@ type seqI64State struct {
 	next map[string]int64
 }
 
-var seqI64 = &seqI64State{next: make(map[string]int64)}
-
 func (s *seqI64State) nextVal(low, high int64) int64 {
 	key := strconv.FormatInt(low, 10) + ":" + strconv.FormatInt(high, 10)
 	s.mu.Lock()
@@ -79,6 +77,8 @@ func (s *seqI64State) nextVal(low, high int64) int64 {
 	s.next[key] = next
 	return next
 }
+
+var seqI64 = &seqI64State{next: make(map[string]int64)}
 
 func subSeqI64(s string) string {
 	return reSeqI64.ReplaceAllStringFunc(s, func(match string) string {
