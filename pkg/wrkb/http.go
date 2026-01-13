@@ -3,7 +3,6 @@ package wrkb
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -27,11 +26,13 @@ type BenchParam struct {
 }
 
 type BenchStat struct {
-	GoodCnt, BadCnt, ErrorCnt int
-	BodyReqSize               int
-	BodyRespSize              int
-	Time                      time.Duration
-	Histogram                 *hdrhistogram.Histogram
+	GoodCnt      int
+	BadCnt       int
+	ErrorCnt     int
+	BodyReqSize  int
+	BodyRespSize int
+	Time         time.Duration
+	Histogram    *hdrhistogram.Histogram
 }
 
 func (s BenchStat) Add(other BenchStat) BenchStat {
@@ -67,6 +68,7 @@ type BenchResult struct {
 }
 
 func (r BenchResult) CalcStat() BenchResult {
+
 	totalRequests := r.Stat.GoodCnt + r.Stat.BadCnt + r.Stat.ErrorCnt
 	if totalRequests == 0 {
 		return r
@@ -80,7 +82,7 @@ func (r BenchResult) CalcStat() BenchResult {
 		r.RPS = int(float64(totalRequests) / duration.Seconds())
 	}
 
-	measuredCount := int64(r.Stat.Histogram.TotalCount())
+	measuredCount := r.Stat.Histogram.TotalCount()
 	if measuredCount > 0 {
 		r.Latency = time.Duration(r.Stat.Time.Nanoseconds() / measuredCount)
 
@@ -105,6 +107,7 @@ func BenchHTTP(param BenchParam) BenchResult {
 	var cancelAll context.CancelFunc
 	if param.MaxReqs > 0 {
 		ctx, cancelAll = context.WithCancel(ctxTimeout)
+		defer cancelAll()
 	}
 
 	client := &fasthttp.Client{
@@ -130,23 +133,18 @@ func BenchHTTP(param BenchParam) BenchResult {
 		ticker := time.NewTicker(interval)
 		limiter = ticker.C
 		stopLimiter = ticker.Stop
-	}
-
-	if stopLimiter != nil {
 		defer stopLimiter()
 	}
 
 	stats := make(chan BenchStat, param.ConnNum)
 	wg := sync.WaitGroup{}
 	var reqCount int64
-	maxReqs := int64(param.MaxReqs)
 
 	for i := 0; i < param.ConnNum; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			stat := runWorker(ctx, client, param, limiter, &reqCount, maxReqs, cancelAll)
-			stats <- stat
+			stats <- runWorker(ctx, param, client, limiter, &reqCount, cancelAll)
 		}()
 	}
 
@@ -167,26 +165,23 @@ func BenchHTTP(param BenchParam) BenchResult {
 	}).CalcStat()
 }
 
-func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam, limiter <-chan time.Time, reqCount *int64, maxReqs int64, cancelAll context.CancelFunc) BenchStat {
+func runWorker(
+	ctx context.Context,
+	param BenchParam,
+	client *fasthttp.Client,
+	limiter <-chan time.Time,
+	reqCount *int64,
+	cancelAll context.CancelFunc) BenchStat {
 
 	stat := BenchStat{Histogram: hdrhistogram.New(1_000, 10_000_000_000, 3)}
-	hasContentTypeHeader := false
-	for _, h := range param.Headers {
-		parts := strings.SplitN(h, ":", 2)
-		if len(parts) != 2 {
-			continue
-		}
-		if strings.EqualFold(strings.TrimSpace(parts[0]), "Content-Type") {
-			hasContentTypeHeader = true
-			break
-		}
-	}
+	hasContentTypeHeader := hasHeader(param.Headers, "Content-Type")
 
 	for {
 		select {
 		case <-ctx.Done():
 			return stat
 		default:
+
 			if limiter != nil {
 				select {
 				case <-limiter:
@@ -195,9 +190,9 @@ func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam, l
 				}
 			}
 
-			if maxReqs > 0 {
-				next := atomic.AddInt64(reqCount, 1)
-				if next > maxReqs {
+			if param.MaxReqs > 0 {
+				next := int(atomic.AddInt64(reqCount, 1))
+				if next > param.MaxReqs {
 					if cancelAll != nil {
 						cancelAll()
 					}
@@ -205,92 +200,124 @@ func runWorker(ctx context.Context, client *fasthttp.Client, param BenchParam, l
 				}
 			}
 
-			url := substitute(param.URL)
-
 			req := fasthttp.AcquireRequest()
+
 			req.Header.SetMethod(param.Method)
-			req.SetRequestURI(url)
-
-			for _, h := range param.Headers {
-				parts := strings.SplitN(h, ":", 2)
-				if len(parts) == 2 {
-					req.Header.Set(strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]))
-				}
-			}
-
-			var body string
-			if param.Body != "" {
-				body = substitute(param.Body)
-				req.SetBodyString(body)
-
-				if !hasContentTypeHeader {
-					req.Header.Set("Content-Type", "application/json")
-				}
-
-				stat.BodyReqSize += len(body)
-			}
-
-			if param.Verbose {
-				fmt.Printf("*   Trying %s...\n", req.URI().Host())
-				fmt.Printf("* Connected to %s (%s)\n", req.URI().Host(), req.URI().Host())
-				fmt.Printf("> %s %s HTTP/1.1\n", req.Header.Method(), req.URI().PathOriginal())
-				fmt.Printf("> Host: %s\n", req.URI().Host())
-				req.Header.VisitAll(func(k, v []byte) {
-					fmt.Printf("> %s: %s\n", k, v)
-				})
-				if len(body) > 0 {
-					fmt.Printf(">\n> %s\n", body)
-				}
-				fmt.Printf("> \n* Request completely sent off\n")
-			}
+			req.SetRequestURI(substitute(param.URL))
+			setHeaders(req, param.Headers)
+			stat.BodyReqSize += setBody(req, param.Body, hasContentTypeHeader)
+			logRequest(req, param.Verbose)
 
 			resp := fasthttp.AcquireResponse()
-			startReq := time.Now()
+
+			start := time.Now()
 			err := client.Do(req, resp)
-			elapsedReq := time.Since(startReq)
+			elapsed := time.Since(start)
+			fasthttp.ReleaseRequest(req)
 
 			if err != nil {
+				fasthttp.ReleaseResponse(resp)
 				stat.ErrorCnt++
 				if param.Verbose {
-					fmt.Fprintf(os.Stderr, "ERR: %v\n", err)
+					fmt.Printf("ERR: %v\n", err)
 				}
-
-				fasthttp.ReleaseRequest(req)
-				fasthttp.ReleaseResponse(resp)
 				continue
 			}
 
-			code := resp.StatusCode()
-			bodyBytes := resp.Body()
-			bodyRespSize := len(bodyBytes)
+			logResponse(resp, param.Verbose, elapsed)
+			updateStatistic(&stat, resp, elapsed)
 
-			if param.Verbose {
-				statusLine := fmt.Sprintf("< HTTP/1.1 %d %s", code, fasthttp.StatusMessage(code))
-				fmt.Println(statusLine)
-				resp.Header.VisitAll(func(k, v []byte) {
-					fmt.Printf("< %s: %s\n", k, v)
-				})
-				fmt.Printf("< \n")
-
-				if len(bodyBytes) > 0 {
-					fmt.Println(string(bodyBytes))
-				}
-				fmt.Printf("* Connection closed | time: %v | bodyRespSize: %d bytes\n\n", elapsedReq, bodyRespSize)
-			}
-
-			stat.Time += elapsedReq
-			stat.Histogram.RecordValue(elapsedReq.Nanoseconds())
-
-			switch {
-			case code >= 200 && code < 400:
-				stat.GoodCnt++
-				stat.BodyRespSize += bodyRespSize
-			default:
-				stat.BadCnt++
-			}
-
-			fasthttp.ReleaseRequest(req)
 			fasthttp.ReleaseResponse(resp)
 		}
+	}
+}
+
+func updateStatistic(stat *BenchStat, resp *fasthttp.Response, elapsed time.Duration) {
+	stat.Time += elapsed
+	stat.Histogram.RecordValue(elapsed.Nanoseconds())
+
+	code := resp.StatusCode()
+	switch {
+	case code >= 200 && code < 400:
+		stat.GoodCnt++
+		stat.BodyRespSize += len(resp.Body())
+	default:
+		stat.BadCnt++
+	}
+}
+
+func logResponse(resp *fasthttp.Response, isVerbose bool, elapsedReq time.Duration) {
+	if isVerbose {
+		code := resp.StatusCode()
+		statusLine := fmt.Sprintf("< HTTP/1.1 %d %s", code, fasthttp.StatusMessage(code))
+		fmt.Println(statusLine)
+		resp.Header.VisitAll(func(k, v []byte) {
+			fmt.Printf("< %s: %s\n", k, v)
+		})
+		fmt.Printf("< \n")
+
+		bodyBytes := resp.Body()
+		if len(bodyBytes) > 0 {
+			fmt.Println(string(bodyBytes))
+		}
+		fmt.Printf("* Connection closed | time: %v | bodyRespSize: %d bytes\n\n", elapsedReq, len(bodyBytes))
+	}
+}
+
+func hasHeader(headers []string, key string) bool {
+
+	for _, h := range headers {
+		parts := strings.SplitN(h, ":", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		if strings.EqualFold(strings.TrimSpace(parts[0]), key) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func setHeaders(req *fasthttp.Request, headers []string) {
+	for _, h := range headers {
+		parts := strings.SplitN(h, ":", 2)
+		if len(parts) == 2 {
+			req.Header.Set(strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]))
+		}
+	}
+}
+
+func setBody(req *fasthttp.Request, body string, hasContentTypeHeader bool) int {
+
+	if body != "" {
+
+		body = substitute(body)
+		req.SetBodyString(body)
+
+		if !hasContentTypeHeader {
+			req.Header.Set("Content-Type", "application/json")
+		}
+
+		return len(body)
+	}
+
+	return 0
+}
+
+func logRequest(req *fasthttp.Request, isVerbose bool) {
+	if isVerbose {
+		fmt.Printf("*   Trying %s...\n", req.URI().Host())
+		fmt.Printf("* Connected to %s (%s)\n", req.URI().Host(), req.URI().Host())
+		fmt.Printf("> %s %s HTTP/1.1\n", req.Header.Method(), req.URI().PathOriginal())
+		fmt.Printf("> Host: %s\n", req.URI().Host())
+		req.Header.VisitAll(func(k, v []byte) {
+			fmt.Printf("> %s: %s\n", k, v)
+		})
+		body := req.Body()
+		if len(body) > 0 {
+			fmt.Printf(">\n> %s\n", body)
+		}
+		fmt.Printf("> \n* Request completely sent off\n")
 	}
 }

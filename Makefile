@@ -23,7 +23,6 @@ clean: ## Clean project
 
 bench_pico:
 	go run ./... \
-		-v \
 		-p=main \
 	  -t=1 \
 	  -n=10000 \
@@ -43,6 +42,13 @@ bench_hashes_kube:
 		-p=hashes \
 	  -t=1 \
 	  http://127.0.0.1:8080/hashes/__RANDI64_380670000000_380679999999__
+
+bench_sis_get:
+	go run ./... \
+		-p=sis \
+		-t=1 \
+	  -H 'Authorization: Bearer eyJ4NXQi' \
+	  http://127.0.0.1:9001/subscribers/__RANDI64_380670000000_380719999999__
 
 bench_sis_update:
 	go run ./... \
