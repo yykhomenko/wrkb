@@ -74,18 +74,13 @@ func (r BenchResult) CalcStat() BenchResult {
 		return r
 	}
 
-	duration := r.Param.Duration
-	if r.ActualDuration > 0 {
-		duration = r.ActualDuration
-	}
-	if duration > 0 {
-		r.RPS = int(float64(totalRequests) / duration.Seconds())
+	if r.Stat.Time > 0 {
+		r.RPS = int(float64(totalRequests) / (r.Stat.Time.Seconds() / float64(r.Param.ConnNum)))
 	}
 
 	measuredCount := r.Stat.Histogram.TotalCount()
 	if measuredCount > 0 {
 		r.Latency = time.Duration(r.Stat.Time.Nanoseconds() / measuredCount)
-
 		r.Min = time.Duration(r.Stat.Histogram.Min()) * time.Nanosecond
 		r.P50 = time.Duration(r.Stat.Histogram.ValueAtQuantile(50.0)) * time.Nanosecond
 		r.P90 = time.Duration(r.Stat.Histogram.ValueAtQuantile(90.0)) * time.Nanosecond
@@ -99,7 +94,6 @@ func (r BenchResult) CalcStat() BenchResult {
 
 func BenchHTTP(param BenchParam) BenchResult {
 
-	start := time.Now()
 	ctxTimeout, cancelTimeout := context.WithTimeout(context.Background(), param.Duration)
 	defer cancelTimeout()
 
@@ -159,9 +153,8 @@ func BenchHTTP(param BenchParam) BenchResult {
 	}
 
 	return (BenchResult{
-		Param:          param,
-		Stat:           final,
-		ActualDuration: time.Since(start),
+		Param: param,
+		Stat:  final,
 	}).CalcStat()
 }
 
