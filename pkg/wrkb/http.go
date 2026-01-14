@@ -54,17 +54,16 @@ func (s BenchStat) Add(other BenchStat) BenchStat {
 }
 
 type BenchResult struct {
-	Param          BenchParam
-	Stat           BenchStat
-	ActualDuration time.Duration
-	RPS            int
-	Latency        time.Duration
-	Min            time.Duration
-	P50            time.Duration
-	P90            time.Duration
-	P99            time.Duration
-	P999           time.Duration
-	Max            time.Duration
+	Param   BenchParam
+	Stat    BenchStat
+	RPS     int
+	Latency time.Duration
+	Min     time.Duration
+	P50     time.Duration
+	P90     time.Duration
+	P99     time.Duration
+	P999    time.Duration
+	Max     time.Duration
 }
 
 func (r BenchResult) CalcStat() BenchResult {
