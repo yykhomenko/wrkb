@@ -1,10 +1,12 @@
 package wrkb
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"math"
 	"math/rand"
+	"os"
 	"sort"
 	"time"
 
@@ -20,17 +22,18 @@ const (
 	gray   = "\033[90m"
 )
 
-func Start(params []BenchParam) {
+func Start(params []BenchParam) error {
 	if len(params) == 0 {
-		log.Fatal("no benchmark parameters provided")
+		return fmt.Errorf("no benchmark parameters provided")
 	}
 
 	var results []BenchResult
+	jsonOnly := params[0].WriteBestJSON && params[0].BestJSONPath == ""
 
-	if params[0].ProcName != "" {
+	if !jsonOnly && params[0].ProcName != "" {
 		ps, err := Ps(params[0].ProcName)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		fmt.Printf("\n%s⚙️  Process:%s %s\n", cyan, reset, params[0].ProcName)
 		fmt.Printf("%s   CPU:%s %.2fs | %sThreads:%s %d | %sMem:%s %s | %sDisk:%s %s\n\n",
@@ -40,28 +43,42 @@ func Start(params []BenchParam) {
 			gray, reset, humanize.Bytes(uint64(ps.BinarySize)))
 	}
 
-	printHeader()
-
-	for _, p := range params {
-		results = append(results, runSingleBenchmark(p))
+	if !jsonOnly {
+		printHeader()
 	}
 
-	printFooter()
+	for _, p := range params {
+		results = append(results, runSingleBenchmark(p, !jsonOnly))
+	}
+
+	if !jsonOnly {
+		printFooter()
+	}
 
 	best := findBestResult(results)
 
-	icon := randomStartIcon()
+	if !jsonOnly {
+		icon := randomStartIcon()
 
-	fmt.Printf("\n%s %s Best result:%s %d connections | %s%d RPS%s | %v%s latency%s \nmin=%-8v \np50=%-8v \np90=%-8v \np99=%-8v \np999=%-8v \nmax=%-8v\n\n",
-		icon,
-		yellow, reset, best.Param.ConnNum,
-		green, best.RPS, reset,
-		red, best.Latency, reset,
-		best.Min, best.P50, best.P90, best.P99, best.P999, best.Max,
-	)
+		fmt.Printf("\n%s %s Best result:%s %d connections | %s%d RPS%s | %v%s latency%s \nmin=%-8v \np50=%-8v \np90=%-8v \np99=%-8v \np999=%-8v \nmax=%-8v\n\n",
+			icon,
+			yellow, reset, best.Param.ConnNum,
+			green, best.RPS, reset,
+			red, best.Latency, reset,
+			best.Min, best.P50, best.P90, best.P99, best.P999, best.Max,
+		)
+	}
+
+	if params[0].WriteBestJSON {
+		if err := writeBestResultJSON(best, params[0].BestJSONPath); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
-func runSingleBenchmark(p BenchParam) BenchResult {
+func runSingleBenchmark(p BenchParam, showOutput bool) BenchResult {
 	var psBefore *PsStat
 	if p.ProcName != "" {
 		ps, err := Ps(p.ProcName)
@@ -93,7 +110,9 @@ func runSingleBenchmark(p BenchParam) BenchResult {
 		}
 	}
 
-	printRow(result, cpu, thr, mem)
+	if showOutput {
+		printRow(result, cpu, thr, mem)
+	}
 	return result
 }
 
@@ -137,4 +156,67 @@ func findBestResult(stats []BenchResult) BenchResult {
 		return w1 > w2
 	})
 	return stats[0]
+}
+
+type bestResultJSON struct {
+	ProcName      string  `json:"proc_name,omitempty"`
+	URL           string  `json:"url"`
+	Method        string  `json:"method"`
+	Connections   int     `json:"connections"`
+	Duration      string  `json:"duration"`
+	RPSLimit      float64 `json:"rps_limit,omitempty"`
+	MaxRequests   int     `json:"max_requests,omitempty"`
+	RPS           int     `json:"rps"`
+	Latency       string  `json:"latency"`
+	Min           string  `json:"min"`
+	P50           string  `json:"p50"`
+	P90           string  `json:"p90"`
+	P99           string  `json:"p99"`
+	P999          string  `json:"p999"`
+	Max           string  `json:"max"`
+	Good          int     `json:"good"`
+	Bad           int     `json:"bad"`
+	Error         int     `json:"error"`
+	BodyReqBytes  int     `json:"body_req_bytes"`
+	BodyRespBytes int     `json:"body_resp_bytes"`
+	Time          string  `json:"time"`
+}
+
+func writeBestResultJSON(best BenchResult, path string) error {
+	payload := bestResultJSON{
+		ProcName:      best.Param.ProcName,
+		URL:           best.Param.URL,
+		Method:        best.Param.Method,
+		Connections:   best.Param.ConnNum,
+		Duration:      best.Param.Duration.String(),
+		RPSLimit:      best.Param.RPSLimit,
+		MaxRequests:   best.Param.MaxReqs,
+		RPS:           best.RPS,
+		Latency:       best.Latency.String(),
+		Min:           best.Min.String(),
+		P50:           best.P50.String(),
+		P90:           best.P90.String(),
+		P99:           best.P99.String(),
+		P999:          best.P999.String(),
+		Max:           best.Max.String(),
+		Good:          best.Stat.GoodCnt,
+		Bad:           best.Stat.BadCnt,
+		Error:         best.Stat.ErrorCnt,
+		BodyReqBytes:  best.Stat.BodyReqSize,
+		BodyRespBytes: best.Stat.BodyRespSize,
+		Time:          best.Stat.Time.String(),
+	}
+
+	data, err := json.MarshalIndent(payload, "", "  ")
+	if err != nil {
+		return err
+	}
+	data = append(data, '\n')
+
+	if path == "" {
+		_, err := os.Stdout.Write(data)
+		return err
+	}
+
+	return os.WriteFile(path, data, 0o644)
 }

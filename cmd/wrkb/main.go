@@ -81,6 +81,10 @@ func main() {
 				Aliases: []string{"verbose"},
 				Usage:   "Enable verbose output",
 			},
+			&cli.StringFlag{
+				Name:  "best-json",
+				Usage: "Write best benchmark result to JSON file (empty = stdout, use --best-json=)",
+			},
 		},
 		Action: func(c *cli.Context) error {
 			if c.Args().Len() < 1 {
@@ -97,29 +101,34 @@ func main() {
 			maxReqs := c.Int("n")
 			body := c.String("d")
 			headers := c.StringSlice("H")
+			bestJSONPath := c.String("best-json")
+			writeBestJSON := c.IsSet("best-json")
+			jsonOnly := writeBestJSON && bestJSONPath == ""
 
-			fmt.Printf("\n⚙️  Preparing benchmark: '%s' [%s] for %s\n", procName, method, url)
-			fmt.Printf("   Connections: %v | Duration: %v | Requests: %d | Verbose: %v\n", conns, duration, maxReqs, verbose)
+			if !jsonOnly {
+				fmt.Printf("\n⚙️  Preparing benchmark: '%s' [%s] for %s\n", procName, method, url)
+				fmt.Printf("   Connections: %v | Duration: %v | Requests: %d | Verbose: %v\n", conns, duration, maxReqs, verbose)
+			}
 
 			var params []wrkb.BenchParam
 			for _, connNum := range conns {
 				params = append(params, wrkb.BenchParam{
-					ProcName: procName,
-					ConnNum:  connNum,
-					URL:      url,
-					Method:   method,
-					Duration: duration,
-					Verbose:  verbose,
-					RPSLimit: rpsLimit,
-					MaxReqs:  maxReqs,
-					Body:     body,
-					Headers:  headers,
+					ProcName:      procName,
+					ConnNum:       connNum,
+					URL:           url,
+					Method:        method,
+					Duration:      duration,
+					Verbose:       verbose,
+					RPSLimit:      rpsLimit,
+					MaxReqs:       maxReqs,
+					Body:          body,
+					Headers:       headers,
+					BestJSONPath:  bestJSONPath,
+					WriteBestJSON: writeBestJSON,
 				})
 			}
 
-			wrkb.Start(params)
-
-			return nil
+			return wrkb.Start(params)
 		},
 	}
 
