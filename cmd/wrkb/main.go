@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"wrkb/pkg/wrkb"
+	"github.com/yykhomenko/wrkb/pkg/wrkb"
 
 	"github.com/urfave/cli/v2"
 )
