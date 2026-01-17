@@ -163,27 +163,27 @@ func findBestResult(stats []BenchResult) BenchResult {
 }
 
 type bestResultJSON struct {
-	ProcName      string  `json:"proc_name,omitempty" cmp:"proc_name"`
-	URL           string  `json:"url" cmp:"url"`
-	Method        string  `json:"method" cmp:"method"`
-	Connections   int     `json:"connections" cmp:"connections"`
-	Duration      string  `json:"duration" cmp:"duration" cmpKind:"duration"`
-	RPSLimit      float64 `json:"rps_limit,omitempty" cmp:"rps_limit"`
-	MaxRequests   int     `json:"max_requests,omitempty" cmp:"max_requests"`
-	RPS           int     `json:"rps" cmp:"rps"`
-	Latency       string  `json:"latency" cmp:"latency" cmpKind:"duration"`
-	Min           string  `json:"min" cmp:"min" cmpKind:"duration"`
-	P50           string  `json:"p50" cmp:"p50" cmpKind:"duration"`
-	P90           string  `json:"p90" cmp:"p90" cmpKind:"duration"`
-	P99           string  `json:"p99" cmp:"p99" cmpKind:"duration"`
-	P999          string  `json:"p999" cmp:"p999" cmpKind:"duration"`
-	Max           string  `json:"max" cmp:"max" cmpKind:"duration"`
-	Good          int     `json:"good" cmp:"good"`
-	Bad           int     `json:"bad" cmp:"bad"`
-	Error         int     `json:"error" cmp:"error"`
-	BodyReqBytes  int     `json:"body_req_bytes" cmp:"body_req_bytes"`
-	BodyRespBytes int     `json:"body_resp_bytes" cmp:"body_resp_bytes"`
-	Time          string  `json:"time" cmp:"time" cmpKind:"duration"`
+	ProcName      string  `json:"proc_name,omitempty" csv:"proc_name"`
+	URL           string  `json:"url" csv:"url"`
+	Method        string  `json:"method" csv:"method"`
+	Connections   int     `json:"connections" csv:"connections"`
+	Duration      int64   `json:"duration" csv:"duration" cmpKind:"duration"`
+	RPSLimit      float64 `json:"rps_limit,omitempty" csv:"rps_limit"`
+	MaxRequests   int     `json:"max_requests,omitempty" csv:"max_requests"`
+	RPS           int     `json:"rps" csv:"rps"`
+	Latency       int64   `json:"latency" csv:"latency" cmpKind:"duration"`
+	Min           int64   `json:"min" csv:"min" cmpKind:"duration"`
+	P50           int64   `json:"p50" csv:"p50" cmpKind:"duration"`
+	P90           int64   `json:"p90" csv:"p90" cmpKind:"duration"`
+	P99           int64   `json:"p99" csv:"p99" cmpKind:"duration"`
+	P999          int64   `json:"p999" csv:"p999" cmpKind:"duration"`
+	Max           int64   `json:"max" csv:"max" cmpKind:"duration"`
+	Good          int     `json:"good" csv:"good"`
+	Bad           int     `json:"bad" csv:"bad"`
+	Error         int     `json:"error" csv:"error"`
+	BodyReqBytes  int     `json:"body_req_bytes" csv:"body_req_bytes"`
+	BodyRespBytes int     `json:"body_resp_bytes" csv:"body_resp_bytes"`
+	Time          int64   `json:"time" csv:"time" cmpKind:"duration"`
 }
 
 func writeBestResultJSON(best BenchResult, path string, compare bool) ([]compareRow, error) {
@@ -192,23 +192,23 @@ func writeBestResultJSON(best BenchResult, path string, compare bool) ([]compare
 		URL:           best.Param.URL,
 		Method:        best.Param.Method,
 		Connections:   best.Param.ConnNum,
-		Duration:      best.Param.Duration.String(),
+		Duration:      best.Param.Duration.Microseconds(),
 		RPSLimit:      best.Param.RPSLimit,
 		MaxRequests:   best.Param.MaxReqs,
 		RPS:           best.RPS,
-		Latency:       best.Latency.String(),
-		Min:           best.Min.String(),
-		P50:           best.P50.String(),
-		P90:           best.P90.String(),
-		P99:           best.P99.String(),
-		P999:          best.P999.String(),
-		Max:           best.Max.String(),
+		Latency:       best.Latency.Microseconds(),
+		Min:           best.Min.Microseconds(),
+		P50:           best.P50.Microseconds(),
+		P90:           best.P90.Microseconds(),
+		P99:           best.P99.Microseconds(),
+		P999:          best.P999.Microseconds(),
+		Max:           best.Max.Microseconds(),
 		Good:          best.Stat.GoodCnt,
 		Bad:           best.Stat.BadCnt,
 		Error:         best.Stat.ErrorCnt,
 		BodyReqBytes:  best.Stat.BodyReqSize,
 		BodyRespBytes: best.Stat.BodyRespSize,
-		Time:          best.Stat.Time.String(),
+		Time:          best.Stat.Time.Microseconds(),
 	}
 
 	data, err := json.MarshalIndent(payload, "", "  ")

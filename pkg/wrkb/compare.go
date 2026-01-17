@@ -63,7 +63,7 @@ func buildCompareRows(base bestResultJSON, next bestResultJSON) []compareRow {
 	rows := make([]compareRow, 0, structType.NumField())
 	for i := 0; i < structType.NumField(); i++ {
 		field := structType.Field(i)
-		label := field.Tag.Get("cmp")
+		label := field.Tag.Get("csv")
 		if label == "" {
 			continue
 		}
@@ -71,8 +71,8 @@ func buildCompareRows(base bestResultJSON, next bestResultJSON) []compareRow {
 		baseField := baseVal.Field(i)
 		nextField := nextVal.Field(i)
 
-		baseStr := valueToString(baseField)
-		nextStr := valueToString(nextField)
+		baseStr := formatValue(field, baseField)
+		nextStr := formatValue(field, nextField)
 
 		absDiff := ""
 		pctDiff := ""
@@ -82,6 +82,8 @@ func buildCompareRows(base bestResultJSON, next bestResultJSON) []compareRow {
 				absDiff = formatAbsDiff(field, math.Abs(diff))
 				if baseNum != 0 {
 					pctDiff = fmt.Sprintf("%+.2f%%", (diff/baseNum)*100)
+				} else {
+					pctDiff = fmt.Sprintf("%+.2f%%", 0.00)
 				}
 			}
 		}
@@ -172,17 +174,10 @@ func valueToString(v reflect.Value) string {
 
 func numericValue(field reflect.StructField, v reflect.Value) (float64, bool) {
 	if field.Tag.Get("cmpKind") == "duration" {
-		if v.Kind() != reflect.String {
-			return 0, false
+		if us, ok := durationMicros(v); ok {
+			return float64(us), true
 		}
-		if v.String() == "" {
-			return 0, false
-		}
-		d, err := time.ParseDuration(v.String())
-		if err != nil {
-			return 0, false
-		}
-		return float64(d.Nanoseconds()), true
+		return 0, false
 	}
 
 	switch v.Kind() {
@@ -199,7 +194,7 @@ func numericValue(field reflect.StructField, v reflect.Value) (float64, bool) {
 
 func formatAbsDiff(field reflect.StructField, diff float64) string {
 	if field.Tag.Get("cmpKind") == "duration" {
-		return time.Duration(int64(diff)).String()
+		return (time.Duration(int64(diff)) * time.Microsecond).String()
 	}
 
 	switch field.Type.Kind() {
@@ -211,5 +206,36 @@ func formatAbsDiff(field reflect.StructField, diff float64) string {
 		return strconv.FormatFloat(diff, 'f', -1, 64)
 	default:
 		return strconv.FormatFloat(diff, 'f', -1, 64)
+	}
+}
+
+func formatValue(field reflect.StructField, v reflect.Value) string {
+	if field.Tag.Get("cmpKind") == "duration" {
+		if us, ok := durationMicros(v); ok {
+			return (time.Duration(us) * time.Microsecond).String()
+		}
+	}
+	return valueToString(v)
+}
+
+func durationMicros(v reflect.Value) (int64, bool) {
+	switch v.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return v.Int(), true
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return int64(v.Uint()), true
+	case reflect.Float32, reflect.Float64:
+		return int64(v.Float()), true
+	case reflect.String:
+		if v.String() == "" {
+			return 0, false
+		}
+		d, err := time.ParseDuration(v.String())
+		if err != nil {
+			return 0, false
+		}
+		return d.Microseconds(), true
+	default:
+		return 0, false
 	}
 }
