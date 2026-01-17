@@ -141,6 +141,36 @@ max=571.391µs
 - **body req/resp** — cumulative bytes sent/received.
 - **cpu/thr/mem** — delta CPU time, thread count, and RSS of the monitored process.
 
+
+-compare
+```
+┌─────────────────┬────────────────────────┬────────────────────────┬──────────┬──────────┐
+│ field           │ base                   │ next                   │ abs_diff │ pct_diff │
+├─────────────────┼────────────────────────┼────────────────────────┼──────────┼──────────┤
+│ proc_name       │ main                   │ main                   │          │          │
+│ url             │ http://127.0.0.1:8088/ │ http://127.0.0.1:8088/ │          │          │
+│ method          │ POST                   │ POST                   │          │          │
+│ connections     │ 8                      │ 8                      │ 0        │ +0.00%   │
+│ duration        │ 1s                     │ 1s                     │ 0s       │ +0.00%   │
+│ rps_limit       │ 0                      │ 0                      │ 0        │ +0.00%   │
+│ max_requests    │ 10000                  │ 10000                  │ 0        │ +0.00%   │
+│ rps             │ 114722                 │ 122874                 │ 8152     │ +7.11%   │
+│ latency         │ 69µs                   │ 65µs                   │ 4µs      │ -5.80%   │
+│ min             │ 25µs                   │ 20µs                   │ 5µs      │ -20.00%  │
+│ p50             │ 67µs                   │ 63µs                   │ 4µs      │ -5.97%   │
+│ p90             │ 94µs                   │ 87µs                   │ 7µs      │ -7.45%   │
+│ p99             │ 120µs                  │ 113µs                  │ 7µs      │ -5.83%   │
+│ p999            │ 202µs                  │ 211µs                  │ 9µs      │ +4.46%   │
+│ max             │ 418µs                  │ 748µs                  │ 330µs    │ +78.95%  │
+│ good            │ 10000                  │ 10000                  │ 0        │ +0.00%   │
+│ bad             │ 0                      │ 0                      │ 0        │ +0.00%   │
+│ error           │ 0                      │ 0                      │ 0        │ +0.00%   │
+│ body_req_bytes  │ 240000                 │ 240000                 │ 0        │ +0.00%   │
+│ body_resp_bytes │ 130000                 │ 130000                 │ 0        │ +0.00%   │
+│ time            │ 697.337ms              │ 651.071ms              │ 46.266ms │ -6.63%   │
+└─────────────────┴────────────────────────┴────────────────────────┴──────────┴──────────┘
+```
+
 ## Benchmark strategy
 `wrkb` executes connection counts sequentially using the same target and method. At the end, it selects a “best” configuration by balancing throughput (RPS) against observed latency using a weighted score (`RPS / log10(latency_ns)`).
 
