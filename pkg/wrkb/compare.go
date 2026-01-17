@@ -7,9 +7,11 @@ import (
 	"math"
 	"os"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 type compareRow struct {
@@ -18,6 +20,7 @@ type compareRow struct {
 	Next    string
 	AbsDiff string
 	PctDiff string
+	Cmp     int
 }
 
 func readBestResultJSON(path string) (bestResultJSON, error) {
@@ -76,6 +79,7 @@ func buildCompareRows(base bestResultJSON, next bestResultJSON) []compareRow {
 
 		absDiff := ""
 		pctDiff := ""
+		cmp := 0
 		if baseNum, ok := numericValue(field, baseField); ok {
 			if nextNum, ok := numericValue(field, nextField); ok {
 				diff := nextNum - baseNum
@@ -84,6 +88,15 @@ func buildCompareRows(base bestResultJSON, next bestResultJSON) []compareRow {
 					pctDiff = fmt.Sprintf("%+.2f%%", (diff/baseNum)*100)
 				} else {
 					pctDiff = fmt.Sprintf("%+.2f%%", 0.00)
+				}
+				if diff != 0 {
+					if dir, ok := compareDirection(field); ok {
+						if (dir == 1 && diff > 0) || (dir == -1 && diff < 0) {
+							cmp = 1
+						} else {
+							cmp = -1
+						}
+					}
 				}
 			}
 		}
@@ -94,6 +107,7 @@ func buildCompareRows(base bestResultJSON, next bestResultJSON) []compareRow {
 			Next:    nextStr,
 			AbsDiff: absDiff,
 			PctDiff: pctDiff,
+			Cmp:     cmp,
 		})
 	}
 
@@ -108,14 +122,14 @@ func printCompareTable(rows []compareRow) {
 	headers := []string{"field", "base", "next", "abs_diff", "pct_diff"}
 	widths := make([]int, len(headers))
 	for i, h := range headers {
-		widths[i] = len(h)
+		widths[i] = visibleWidth(h)
 	}
 
 	for _, row := range rows {
 		values := []string{row.Field, row.Base, row.Next, row.AbsDiff, row.PctDiff}
 		for i, v := range values {
-			if len(v) > widths[i] {
-				widths[i] = len(v)
+			if w := visibleWidth(v); w > widths[i] {
+				widths[i] = w
 			}
 		}
 	}
@@ -135,26 +149,68 @@ func printCompareTable(rows []compareRow) {
 	}
 
 	fmt.Printf("%s\n", line("┌", "┬", "┐"))
-	fmt.Printf("│ %-*s │ %-*s │ %-*s │ %-*s │ %-*s │\n",
-		widths[0], headers[0],
-		widths[1], headers[1],
-		widths[2], headers[2],
-		widths[3], headers[3],
-		widths[4], headers[4],
+	fmt.Printf("│ %s │ %s │ %s │ %s │ %s │\n",
+		padRightANSI(headers[0], widths[0]),
+		padRightANSI(headers[1], widths[1]),
+		padRightANSI(headers[2], widths[2]),
+		padRightANSI(headers[3], widths[3]),
+		padRightANSI(headers[4], widths[4]),
 	)
 	fmt.Printf("%s\n", line("├", "┼", "┤"))
 
 	for _, row := range rows {
-		fmt.Printf("│ %-*s │ %-*s │ %-*s │ %-*s │ %-*s │\n",
-			widths[0], row.Field,
-			widths[1], row.Base,
-			widths[2], row.Next,
-			widths[3], row.AbsDiff,
-			widths[4], row.PctDiff,
+		next := colorizeCompare(row.Next, row.Cmp)
+		absDiff := colorizeCompare(row.AbsDiff, row.Cmp)
+		pctDiff := colorizeCompare(row.PctDiff, row.Cmp)
+		fmt.Printf("│ %s │ %s │ %s │ %s │ %s │\n",
+			padRightANSI(row.Field, widths[0]),
+			padRightANSI(row.Base, widths[1]),
+			padRightANSI(next, widths[2]),
+			padRightANSI(absDiff, widths[3]),
+			padRightANSI(pctDiff, widths[4]),
 		)
 	}
 
 	fmt.Printf("%s\n\n", line("└", "┴", "┘"))
+}
+
+var ansiRegexp = regexp.MustCompile(`\x1b\[[0-9;]*m`)
+
+func padRightANSI(value string, width int) string {
+	if width <= 0 {
+		return value
+	}
+	visible := visibleWidth(value)
+	if visible >= width {
+		return value
+	}
+	return value + strings.Repeat(" ", width-visible)
+}
+
+func visibleWidth(value string) int {
+	plain := ansiRegexp.ReplaceAllString(value, "")
+	return utf8.RuneCountInString(plain)
+}
+
+func compareDirection(field reflect.StructField) (int, bool) {
+	switch field.Tag.Get("cmpBetter") {
+	case "higher":
+		return 1, true
+	case "lower":
+		return -1, true
+	default:
+		return 0, false
+	}
+}
+
+func colorizeCompare(value string, cmp int) string {
+	if value == "" || cmp == 0 {
+		return value
+	}
+	if cmp > 0 {
+		return green + value + reset
+	}
+	return red + value + reset
 }
 
 func valueToString(v reflect.Value) string {

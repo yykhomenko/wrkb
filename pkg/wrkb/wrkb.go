@@ -170,20 +170,20 @@ type bestResultJSON struct {
 	Duration      int64   `json:"duration" csv:"duration" cmpKind:"duration"`
 	RPSLimit      float64 `json:"rps_limit,omitempty" csv:"rps_limit"`
 	MaxRequests   int     `json:"max_requests,omitempty" csv:"max_requests"`
-	RPS           int     `json:"rps" csv:"rps"`
-	Latency       int64   `json:"latency" csv:"latency" cmpKind:"duration"`
-	Min           int64   `json:"min" csv:"min" cmpKind:"duration"`
-	P50           int64   `json:"p50" csv:"p50" cmpKind:"duration"`
-	P90           int64   `json:"p90" csv:"p90" cmpKind:"duration"`
-	P99           int64   `json:"p99" csv:"p99" cmpKind:"duration"`
-	P999          int64   `json:"p999" csv:"p999" cmpKind:"duration"`
-	Max           int64   `json:"max" csv:"max" cmpKind:"duration"`
-	Good          int     `json:"good" csv:"good"`
-	Bad           int     `json:"bad" csv:"bad"`
-	Error         int     `json:"error" csv:"error"`
+	RPS           int     `json:"rps" csv:"rps" cmpBetter:"higher"`
+	Latency       int64   `json:"latency" csv:"latency" cmpKind:"duration" cmpBetter:"lower"`
+	Min           int64   `json:"min" csv:"min" cmpKind:"duration" cmpBetter:"lower"`
+	P50           int64   `json:"p50" csv:"p50" cmpKind:"duration" cmpBetter:"lower"`
+	P90           int64   `json:"p90" csv:"p90" cmpKind:"duration" cmpBetter:"lower"`
+	P99           int64   `json:"p99" csv:"p99" cmpKind:"duration" cmpBetter:"lower"`
+	P999          int64   `json:"p999" csv:"p999" cmpKind:"duration" cmpBetter:"lower"`
+	Max           int64   `json:"max" csv:"max" cmpKind:"duration" cmpBetter:"lower"`
+	Good          int     `json:"good" csv:"good" cmpBetter:"higher"`
+	Bad           int     `json:"bad" csv:"bad" cmpBetter:"lower"`
+	Error         int     `json:"error" csv:"error" cmpBetter:"lower"`
 	BodyReqBytes  int     `json:"body_req_bytes" csv:"body_req_bytes"`
 	BodyRespBytes int     `json:"body_resp_bytes" csv:"body_resp_bytes"`
-	Time          int64   `json:"time" csv:"time" cmpKind:"duration"`
+	Time          int64   `json:"time" csv:"time" cmpKind:"duration" cmpBetter:"lower"`
 }
 
 func writeBestResultJSON(best BenchResult, path string, compare bool) ([]compareRow, error) {
