@@ -29,6 +29,11 @@ go run ./cmd/wrkb --help
 go install ./cmd/wrkb
 ```
 
+### Install from GitHub into `$GOBIN`
+```bash
+go install github.com/yykhomenko/wrkb/cmd/wrkb@latest
+```
+
 ## Usage
 ```bash
 wrkb [options] <url>
