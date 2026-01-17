@@ -1,4 +1,4 @@
-module wrkb
+module github.com/yykhomenko/wrkb
 
 go 1.24.0
 
