@@ -13,18 +13,19 @@ import (
 )
 
 type BenchParam struct {
-	ProcName      string
-	ConnNum       int
-	URL           string
-	Method        string
-	Duration      time.Duration
-	Verbose       bool
-	RPSLimit      float64
-	MaxReqs       int
-	Body          string
-	Headers       []string
-	BestJSONPath  string
-	WriteBestJSON bool
+	ProcName        string
+	ConnNum         int
+	URL             string
+	Method          string
+	Duration        time.Duration
+	Verbose         bool
+	RPSLimit        float64
+	MaxReqs         int
+	Body            string
+	Headers         []string
+	BestJSONPath    string
+	WriteBestJSON   bool
+	CompareBestJSON bool
 }
 
 type BenchStat struct {

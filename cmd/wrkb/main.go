@@ -85,6 +85,10 @@ func main() {
 				Name:  "best-json",
 				Usage: "Write best benchmark result to JSON file (empty = stdout, use --best-json=)",
 			},
+			&cli.BoolFlag{
+				Name:  "compare",
+				Usage: "Compare best-json against existing file and write -2.json + -compare.csv",
+			},
 		},
 		Action: func(c *cli.Context) error {
 			if c.Args().Len() < 1 {
@@ -103,6 +107,7 @@ func main() {
 			headers := c.StringSlice("H")
 			bestJSONPath := c.String("best-json")
 			writeBestJSON := c.IsSet("best-json")
+			compareBestJSON := c.Bool("compare")
 			jsonOnly := writeBestJSON && bestJSONPath == ""
 
 			if !jsonOnly {
@@ -113,18 +118,19 @@ func main() {
 			var params []wrkb.BenchParam
 			for _, connNum := range conns {
 				params = append(params, wrkb.BenchParam{
-					ProcName:      procName,
-					ConnNum:       connNum,
-					URL:           url,
-					Method:        method,
-					Duration:      duration,
-					Verbose:       verbose,
-					RPSLimit:      rpsLimit,
-					MaxReqs:       maxReqs,
-					Body:          body,
-					Headers:       headers,
-					BestJSONPath:  bestJSONPath,
-					WriteBestJSON: writeBestJSON,
+					ProcName:        procName,
+					ConnNum:         connNum,
+					URL:             url,
+					Method:          method,
+					Duration:        duration,
+					Verbose:         verbose,
+					RPSLimit:        rpsLimit,
+					MaxReqs:         maxReqs,
+					Body:            body,
+					Headers:         headers,
+					BestJSONPath:    bestJSONPath,
+					WriteBestJSON:   writeBestJSON,
+					CompareBestJSON: compareBestJSON,
 				})
 			}
 

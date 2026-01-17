@@ -24,7 +24,8 @@ clean: ## Clean project
 bench_pico:
 	go run ./... \
 		-p=main \
-		-best-json=r.json \
+		-best-json=pico.json \
+		-compare \
 	  -t=1 \
 	  -n=10000 \
 	  -X=POST \

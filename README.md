@@ -50,6 +50,7 @@ The URL can include dynamic placeholders (see below).
 | `-d, --data` | Request body for write methods. | — | `wrkb -X POST -d '{"id":"123"}' http://127.0.0.1:8082/submit` |
 | `-v, --verbose` | Enable verbose output. | `false` | `wrkb -v http://127.0.0.1:8082/` |
 | `--best-json` | Write best benchmark result to JSON (`--best-json` = stdout, `--best-json=path` = file). | — | `wrkb --best-json=best.json http://127.0.0.1:8082/` |
+| `--compare` | Compare best-json with existing file (writes `-2.json` and `-compaire.csv`). | `false` | `wrkb --best-json=best.json --compare http://127.0.0.1:8082/` |
 
 ## Dynamic placeholders
 Use templated tokens to inject randomness before each request:

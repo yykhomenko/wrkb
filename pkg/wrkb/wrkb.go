@@ -70,8 +70,12 @@ func Start(params []BenchParam) error {
 	}
 
 	if params[0].WriteBestJSON {
-		if err := writeBestResultJSON(best, params[0].BestJSONPath); err != nil {
+		rows, err := writeBestResultJSON(best, params[0].BestJSONPath, params[0].CompareBestJSON)
+		if err != nil {
 			return err
+		}
+		if len(rows) > 0 && !jsonOnly {
+			printCompareTable(rows)
 		}
 	}
 
@@ -159,30 +163,30 @@ func findBestResult(stats []BenchResult) BenchResult {
 }
 
 type bestResultJSON struct {
-	ProcName      string  `json:"proc_name,omitempty"`
-	URL           string  `json:"url"`
-	Method        string  `json:"method"`
-	Connections   int     `json:"connections"`
-	Duration      string  `json:"duration"`
-	RPSLimit      float64 `json:"rps_limit,omitempty"`
-	MaxRequests   int     `json:"max_requests,omitempty"`
-	RPS           int     `json:"rps"`
-	Latency       string  `json:"latency"`
-	Min           string  `json:"min"`
-	P50           string  `json:"p50"`
-	P90           string  `json:"p90"`
-	P99           string  `json:"p99"`
-	P999          string  `json:"p999"`
-	Max           string  `json:"max"`
-	Good          int     `json:"good"`
-	Bad           int     `json:"bad"`
-	Error         int     `json:"error"`
-	BodyReqBytes  int     `json:"body_req_bytes"`
-	BodyRespBytes int     `json:"body_resp_bytes"`
-	Time          string  `json:"time"`
+	ProcName      string  `json:"proc_name,omitempty" cmp:"proc_name"`
+	URL           string  `json:"url" cmp:"url"`
+	Method        string  `json:"method" cmp:"method"`
+	Connections   int     `json:"connections" cmp:"connections"`
+	Duration      string  `json:"duration" cmp:"duration" cmpKind:"duration"`
+	RPSLimit      float64 `json:"rps_limit,omitempty" cmp:"rps_limit"`
+	MaxRequests   int     `json:"max_requests,omitempty" cmp:"max_requests"`
+	RPS           int     `json:"rps" cmp:"rps"`
+	Latency       string  `json:"latency" cmp:"latency" cmpKind:"duration"`
+	Min           string  `json:"min" cmp:"min" cmpKind:"duration"`
+	P50           string  `json:"p50" cmp:"p50" cmpKind:"duration"`
+	P90           string  `json:"p90" cmp:"p90" cmpKind:"duration"`
+	P99           string  `json:"p99" cmp:"p99" cmpKind:"duration"`
+	P999          string  `json:"p999" cmp:"p999" cmpKind:"duration"`
+	Max           string  `json:"max" cmp:"max" cmpKind:"duration"`
+	Good          int     `json:"good" cmp:"good"`
+	Bad           int     `json:"bad" cmp:"bad"`
+	Error         int     `json:"error" cmp:"error"`
+	BodyReqBytes  int     `json:"body_req_bytes" cmp:"body_req_bytes"`
+	BodyRespBytes int     `json:"body_resp_bytes" cmp:"body_resp_bytes"`
+	Time          string  `json:"time" cmp:"time" cmpKind:"duration"`
 }
 
-func writeBestResultJSON(best BenchResult, path string) error {
+func writeBestResultJSON(best BenchResult, path string, compare bool) ([]compareRow, error) {
 	payload := bestResultJSON{
 		ProcName:      best.Param.ProcName,
 		URL:           best.Param.URL,
@@ -209,14 +213,41 @@ func writeBestResultJSON(best BenchResult, path string) error {
 
 	data, err := json.MarshalIndent(payload, "", "  ")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	data = append(data, '\n')
 
 	if path == "" {
 		_, err := os.Stdout.Write(data)
-		return err
+		return nil, err
 	}
 
-	return os.WriteFile(path, data, 0o644)
+	if !compare {
+		return nil, os.WriteFile(path, data, 0o644)
+	}
+
+	if _, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			return nil, os.WriteFile(path, data, 0o644)
+		}
+		return nil, err
+	}
+
+	base, err := readBestResultJSON(path)
+	if err != nil {
+		return nil, err
+	}
+
+	nextPath := path + "-2.json"
+	if err := os.WriteFile(nextPath, data, 0o644); err != nil {
+		return nil, err
+	}
+
+	rows := buildCompareRows(base, payload)
+	comparePath := path + "-compare.csv"
+	if err := writeBestResultCompareCSV(comparePath, rows); err != nil {
+		return nil, err
+	}
+
+	return rows, nil
 }
