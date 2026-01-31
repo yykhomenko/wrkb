@@ -60,12 +60,20 @@ func Start(params []BenchParam) error {
 	if !jsonOnly {
 		icon := randomStartIcon()
 
-		fmt.Printf("\n%s %s Best result:%s %d connections | %s%d RPS%s | %v%s latency%s \nmin=%-8v \np50=%-8v \np90=%-8v \np99=%-8v \np999=%-8v \nmax=%-8v\n\n",
+		latencyStr := formatDuration1(best.Latency)
+		minStr := formatDuration1(best.Min)
+		p50Str := formatDuration1(best.P50)
+		p90Str := formatDuration1(best.P90)
+		p99Str := formatDuration1(best.P99)
+		p999Str := formatDuration1(best.P999)
+		maxStr := formatDuration1(best.Max)
+
+		fmt.Printf("\n%s %s Best result:%s %d connections | %s%d RPS%s | %s%s latency%s \nmin=%-8s \np50=%-8s \np90=%-8s \np99=%-8s \np999=%-8s \nmax=%-8s\n\n",
 			icon,
 			yellow, reset, best.Param.ConnNum,
 			green, best.RPS, reset,
-			red, best.Latency, reset,
-			best.Min, best.P50, best.P90, best.P99, best.P999, best.Max,
+			red, latencyStr, reset,
+			minStr, p50Str, p90Str, p99Str, p999Str, maxStr,
 		)
 	}
 
@@ -121,19 +129,19 @@ func runSingleBenchmark(p BenchParam, showOutput bool) BenchResult {
 }
 
 func printHeader() {
-	fmt.Printf("\n%s┌────┬────────┬────────────┬────────┬────────┬────────┬─────────┬─────────┬─────┬────┬────────┐%s\n", gray, reset)
-	fmt.Printf("%s│%4s│%8s│%12s│%8s│%8s│%8s│%9s│%9s│%5s│%4s│%8s│%s\n",
+	fmt.Printf("\n%s┌────┬────────┬────────┬────────┬────────┬────────┬─────────┬─────────┬─────┬────┬────────┐%s\n", gray, reset)
+	fmt.Printf("%s│%4s│%8s│%8s│%8s│%8s│%8s│%9s│%9s│%5s│%4s│%8s│%s\n",
 		gray, "conn", "rps", "latency", "good", "bad", "err", "body req", "body resp", "cpu", "thr", "mem", reset)
-	fmt.Printf("%s├────┼────────┼────────────┼────────┼────────┼────────┼─────────┼─────────┼─────┼────┼────────┤%s\n", gray, reset)
+	fmt.Printf("%s├────┼────────┼────────┼────────┼────────┼────────┼─────────┼─────────┼─────┼────┼────────┤%s\n", gray, reset)
 }
 
 func printRow(result BenchResult, cpu float64, threads int, memRSS int64) {
 	bodyReqSize := humanize.Bytes(uint64(result.Stat.BodyReqSize))
 	bodyRespSize := humanize.Bytes(uint64(result.Stat.BodyRespSize))
-	fmt.Printf("│%4d│%s%8d%s│%s%12s%s│%8d│%8d│%8d│%9s│%9s│%s%5.2f%s│%4d│%8s│\n",
+	fmt.Printf("│%4d│%s%8d%s│%s%8s%s│%8d│%8d│%8d│%9s│%9s│%s%5.2f%s│%4d│%8s│\n",
 		result.Param.ConnNum,
 		green, result.RPS, reset,
-		red, result.Latency, reset,
+		red, formatDuration1(result.Latency), reset,
 		result.Stat.GoodCnt, result.Stat.BadCnt, result.Stat.ErrorCnt,
 		bodyReqSize,
 		bodyRespSize,
@@ -144,7 +152,7 @@ func printRow(result BenchResult, cpu float64, threads int, memRSS int64) {
 }
 
 func printFooter() {
-	fmt.Printf("%s└────┴────────┴────────────┴────────┴────────┴────────┴─────────┴─────────┴─────┴────┴────────┘%s\n", gray, reset)
+	fmt.Printf("%s└────┴────────┴────────┴────────┴────────┴────────┴─────────┴─────────┴─────┴────┴────────┘%s\n", gray, reset)
 }
 
 func randomStartIcon() string {

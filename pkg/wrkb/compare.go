@@ -119,7 +119,7 @@ func printCompareTable(rows []compareRow) {
 		return
 	}
 
-	headers := []string{"field", "base", "next", "abs_diff", "pct_diff"}
+	headers := []string{"field", "base", "next", "diff", "pct"}
 	widths := make([]int, len(headers))
 	for i, h := range headers {
 		widths[i] = visibleWidth(h)
@@ -250,7 +250,7 @@ func numericValue(field reflect.StructField, v reflect.Value) (float64, bool) {
 
 func formatAbsDiff(field reflect.StructField, diff float64) string {
 	if field.Tag.Get("cmpKind") == "duration" {
-		return (time.Duration(int64(diff)) * time.Microsecond).String()
+		return formatDuration1(time.Duration(int64(diff)) * time.Microsecond)
 	}
 
 	switch field.Type.Kind() {
@@ -268,7 +268,7 @@ func formatAbsDiff(field reflect.StructField, diff float64) string {
 func formatValue(field reflect.StructField, v reflect.Value) string {
 	if field.Tag.Get("cmpKind") == "duration" {
 		if us, ok := durationMicros(v); ok {
-			return (time.Duration(us) * time.Microsecond).String()
+			return formatDuration1(time.Duration(us) * time.Microsecond)
 		}
 	}
 	return valueToString(v)
