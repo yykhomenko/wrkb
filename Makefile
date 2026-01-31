@@ -7,6 +7,30 @@ test:	## Run tests
 bench:
 	go test -bench=. -benchmem ./...
 
+bench_analyze: ## Benchmark analyze endpoint
+	go run ./... \
+		-p=Python \
+		-c=1,2,4,8,16,32 \
+		-X=POST \
+		-H 'Content-Type: application/json' \
+		-d '{"texts":["Привіт світе","Це просто жах"],"strategies":["base"]}' \
+		http://127.0.0.1:8000/analyze
+
+bench_analyze2: ## Benchmark analyze endpoint
+	go run ./... \
+		-p=Python \
+		-c=1,2,4,8,16,32 \
+		-X=POST \
+		-H 'Content-Type: application/json' \
+		-d '{"texts":["__RANDSTR_lettersdigits_5000__"],"strategies":["base"]}' \
+		http://127.0.0.1:8000/analyze
+
+bench_health: ## Benchmark health endpoint
+	go run ./... \
+		-p=Python \
+		-t=1 \
+		http://127.0.0.1:8000/health
+
 run: ## Run version
 	go run ./cmd/... main http://127.0.0.1
 
