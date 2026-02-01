@@ -122,7 +122,7 @@ func subRandHex(s string) string {
 
 // RANDSTR — __RANDSTR_<charset>_<len>__
 // charset: letters, digits, lettersdigits
-var reRandStr = regexp.MustCompile(`__RANDSTR_(letters|digits|lettersdigits)_(\d{1,3})__`)
+var reRandStr = regexp.MustCompile(`__RANDSTR_(letters|digits|lettersdigits)_(\d{1,5})__`)
 
 func subRandStr(s string) string {
 	return reRandStr.ReplaceAllStringFunc(s, func(match string) string {
