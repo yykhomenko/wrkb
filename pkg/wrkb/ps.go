@@ -4,7 +4,7 @@ import (
 	"errors"
 	"os"
 
-	"github.com/shirou/gopsutil/v3/process"
+	"github.com/shirou/gopsutil/v4/process"
 )
 
 var ErrProcNotFound = errors.New("proc not found")

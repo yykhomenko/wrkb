@@ -87,6 +87,41 @@ bench_sis_update:
 	  -d='{"billing_type": __RANDI64_0_2__, "language_type": __RANDI64_0_2__, "operator_type": __RANDI64_0_2__}' \
 	  http://127.0.0.1:9001/subscribers/__SEQI64_380500000000_380509999999__
 
+bench_analyze_chunks_avg: ## Benchmark analyze endpoint
+	go run ./... \
+		-c=1,2,4,8,16,32 \
+		-X=POST \
+		-H 'Content-Type: application/json' \
+		-d '{"texts":["__RANDSTR_lettersdigits_5000__"],"strategies":["chunks_avg"]}' \
+		http://qb-mon-1:8000/analyze
+
+bench_analyze_chunks_avg_long2: ## Benchmark analyze endpoint
+	go run ./... \
+		-t=1 \
+		-c=2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2 \
+		-X=POST \
+		-H 'Content-Type: application/json' \
+		-d '{"texts":["__RANDSTR_lettersdigits_15000__"],"strategies":["chunks_avg"]}' \
+		http://qb-mon-1:8000/analyze
+
+bench_analyze_chunks_avg_long4: ## Benchmark analyze endpoint
+	go run ./... \
+		-t=1 \
+		-c=4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4 \
+		-X=POST \
+		-H 'Content-Type: application/json' \
+		-d '{"texts":["__RANDSTR_lettersdigits_5000__"],"strategies":["chunks_avg"]}' \
+		http://qb-mon-1:8000/analyze
+
+bench_analyze_chunks_avg_long8: ## Benchmark analyze endpoint
+	go run ./... \
+		-t=1 \
+		-c=8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8 \
+		-X=POST \
+		-H 'Content-Type: application/json' \
+		-d '{"texts":["__RANDSTR_lettersdigits_5000__"],"strategies":["chunks_avg"]}' \
+		http://qb-mon-1:8000/analyze
+
 help:
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / \
   {printf "\033[36m%-16s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
